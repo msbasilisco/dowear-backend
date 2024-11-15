@@ -13,16 +13,12 @@ const register = async (req, res) => {
         return res.status(400).send({ message: 'This username already exists!' });
     }
 
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    console.log('Hashed Password:', hashedPassword); 
-
     const info = {
-        email,
-        username,
-        password: hashedPassword,
-        city_address,
-        user_rating
+        email: email,
+        username: username,
+        password: password,
+        city_address: city_address,
+        user_rating: user_rating
     };
 
     try {
@@ -46,11 +42,12 @@ const login = async (req, res) => {
             return res.status(400).send({ message: 'Sorry, user not found' });
         }
 
+        console.log(user);
         console.log('Provided password:', password);
         console.log('Stored hashed password:', user.password);
 
         // Compare passwords using bcrypt
-        const isMatch = await bcrypt.compare(password.trim(), user.password);
+        const isMatch = await bcrypt.compare(password, user.password);
         console.log('Password comparison result:', isMatch);
 
         if (!isMatch) {
