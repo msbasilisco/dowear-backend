@@ -4,7 +4,7 @@ const { User } = require('../models');
 const protect = async (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
-            if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        if (!authHeader || !authHeader.startsWith('Bearer ')) {
             return res.status(401).json({
                 success: false,
                 message: 'No token provided'
@@ -14,6 +14,8 @@ const protect = async (req, res, next) => {
 
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         console.log(decoded);
+
+        // Find the user by the userID stored in the token
         const user = await User.findByPk(decoded.userID);
 
         if (!user) {
@@ -23,9 +25,8 @@ const protect = async (req, res, next) => {
             });
         }
 
-        req.user = user;
-        next();
-
+        req.user = user;  // Attach user to the request object
+        next();  // Proceed to the next middleware
     } catch (error) {
         console.error('Auth middleware error:', error);
         res.status(401).json({
