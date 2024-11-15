@@ -1,6 +1,9 @@
+// models/user.js
+const { hashPassword } = require('../utils/passwordUtils');  // Import the hashPassword function
+
 module.exports = (sequelize, DataTypes) => {
     const User = sequelize.define("user", {
-        userID: {  
+        userID: {
             type: DataTypes.INTEGER,
             allowNull: false,
             autoIncrement: true,
@@ -11,7 +14,7 @@ module.exports = (sequelize, DataTypes) => {
             allowNull: false,
             unique: true,
             validate: {
-                isEmail: true 
+                isEmail: true
             }
         },
         username: {
@@ -22,10 +25,10 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: false,
             validate: {
-                len: [8, 100] 
+                len: [8, 100]  // Password length validation
             }
         },
-        user_address: { 
+        user_address: {
             type: DataTypes.ENUM,
             values: [
                 'Angeles City', 'Antipolo', 'Bacolod', 'Bacoor', 'Baguio', 'Batangas', 'Bogo City', 'Butuan City',
@@ -41,9 +44,28 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.INTEGER,
             validate: {
                 min: 0, // Minimum rating
-                max: 5 // Maximum rating
+                max: 5  // Maximum rating
             }
         }
+    }, {
+        
+        hooks: {
+            beforeCreate: async (user) => {
+                if (user.password) {
+                    user.password = await hashPassword(user.password);  // Hash the password before saving
+                }
+            },
+            beforeUpdate: async (user) => {
+                if (user.changed('password')) {
+                    user.password = await hashPassword(user.password);  // Hash the password if it's updated
+                }
+            }
+        },
+        sequelize,
+        modelName: 'User',  // Model name
+        tableName: 'users', // Table name
+        timestamps: true,   // Enable createdAt and updatedAt columns
+        paranoid: true      // Enable soft deletes (deletedAt column)
     });
 
     return User;
