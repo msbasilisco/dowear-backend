@@ -26,6 +26,14 @@ module.exports = (sequelize, DataTypes) => {
         min: 0,
       },
     },
+    productID:{
+        type:DataTypes.INTEGER,
+        allowNull: false,
+        references:{
+            model: 'products',
+            key: 'productID',
+        }
+    }
   }, {
     sequelize,
     modelName: 'Variation',
