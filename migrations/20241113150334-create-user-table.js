@@ -27,6 +27,7 @@ module.exports = {
       },
       user_address: {
         type: Sequelize.ENUM,
+        allowNull: false,
         values: [
           'Angeles City', 'Antipolo', 'Bacolod', 'Bacoor', 'Baguio', 'Batangas', 'Bogo City', 'Butuan City',
           'Cabanatuan City', 'Cabuyao City', 'CDO City', 'Calamba City', 'Calapan City', 'Caloocan City',
