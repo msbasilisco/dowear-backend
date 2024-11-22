@@ -16,7 +16,7 @@ module.exports = (sequelize, DataTypes) => {
       onUpdate: 'CASCADE',
       onDelete: 'SET NULL',
     },
-    product_Category: {
+    categoryID: {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
