@@ -10,6 +10,16 @@ module.exports = {
         primaryKey: true,
         autoIncrement: true, 
       },
+      productID: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'products',  
+          key: 'productID',   
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL',
+      },
       variation: {
         type: Sequelize.STRING,
         allowNull: false,
@@ -28,16 +38,6 @@ module.exports = {
           min: 0, 
         },
       }, 
-      productId: {
-        type: Sequelize.INTEGER,
-        allowNull: false,
-        references: {
-          model: 'products',  
-          key: 'productID',   
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'SET NULL',
-      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,
