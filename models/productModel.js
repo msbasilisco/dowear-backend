@@ -10,7 +10,7 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'Users', 
+        model: 'users',
         key: 'userID',
       },
       onUpdate: 'CASCADE',
@@ -20,17 +20,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: false,
       references: {
-        model: 'categories', 
+        model: 'categories',
         key: 'categoryID',
       },
-    },
-    prodVariation: {
-      type: DataTypes.INTEGER,
-      allowNull: false,
-      references: {
-        model: 'variations',
-        key: 'variationID',
-      },
+      onUpdate: 'CASCADE',
+      onDelete: 'SET NULL',
     },
     title: {
       type: DataTypes.STRING,
@@ -40,14 +34,15 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.TEXT, 
       allowNull: true,
     },
-    prod_image: {
+    product_image: {
       type: DataTypes.STRING,
       allowNull: true,
     },
     keyTags: {
-      type: DataTypes.STRING,
-      allowNull: false,
-    },
+      type: DataTypes.ARRAY(DataTypes.STRING),
+      allowNull: true,
+      defaultValue: [],
+    }
   }, {
     modelName: 'Product',
     tableName: 'products',
@@ -55,7 +50,6 @@ module.exports = (sequelize, DataTypes) => {
     paranoid: true,          
   });
 
- 
   Product.associate = (models) => {
     Product.belongsTo(models.User, {
       foreignKey: 'seller_id',
