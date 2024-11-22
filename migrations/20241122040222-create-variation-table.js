@@ -27,6 +27,16 @@ module.exports = {
         validate: {
           min: 0, 
         },
+      }, 
+      productId: {
+        type: Sequelize.INTEGER,
+        allowNull: false,
+        references: {
+          model: 'products',  
+          key: 'productID',   
+        },
+        onUpdate: 'CASCADE',
+        onDelete: 'SET NULL',
       },
       createdAt: {
         allowNull: false,
