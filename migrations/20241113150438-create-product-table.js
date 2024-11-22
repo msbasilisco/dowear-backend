@@ -19,7 +19,7 @@ module.exports = {
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL',
       },
-      product_Category: {
+      CategoryID: {
         allowNull: false,
         type: Sequelize.INTEGER,
         references: {
