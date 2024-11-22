@@ -2,7 +2,8 @@
 
 /** @type {import('sequelize-cli').Migration} */
 module.exports = {
-  async up (queryInterface, Sequelize) {
+  async up(queryInterface, Sequelize) {
+    // Create the categories table
     await queryInterface.createTable('categories', {
       categoryID: {
         allowNull: false,
@@ -12,25 +13,25 @@ module.exports = {
       categoryName: {
         allowNull: false,
         type: Sequelize.STRING,
-        unique: true, // Ensures each category has a unique name
+        unique: true, // Ensures unique category names
       },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,
-        defaultValue: Sequelize.NOW, 
+        defaultValue: Sequelize.NOW,
       },
       updatedAt: {
         allowNull: false,
         type: Sequelize.DATE,
-        defaultValue: Sequelize.NOW, 
+        defaultValue: Sequelize.NOW,
       },
       deletedAt: {
         allowNull: true,
-        type: Sequelize.DATE,
-      }
+        type: Sequelize.DATE, // Soft delete support
+      },
     });
 
-    // Inserting the categories with specific IDs
+    // Bulk insert predefined categories with fixed IDs
     await queryInterface.bulkInsert('categories', [
       { categoryID: 1, categoryName: 'Womens Fashion', createdAt: new Date(), updatedAt: new Date() },
       { categoryID: 2, categoryName: 'Mens Fashion', createdAt: new Date(), updatedAt: new Date() },
@@ -41,7 +42,8 @@ module.exports = {
     ]);
   },
 
-  async down (queryInterface, Sequelize) {
+  async down(queryInterface, Sequelize) {
+    // Remove the categories table
     await queryInterface.dropTable('categories');
-  }
+  },
 };
