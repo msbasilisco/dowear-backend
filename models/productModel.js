@@ -49,6 +49,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
     },
   }, {
+    modelName: 'Product',
     tableName: 'products',
     timestamps: true,       
     paranoid: true,          
