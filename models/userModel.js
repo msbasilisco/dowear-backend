@@ -1,8 +1,7 @@
-// models/user.js
-const { hashPassword } = require('../utils/passwordUtils');  // Import the hashPassword function
+const { hashPassword } = require('../utils/passwordUtils');  
 
 module.exports = (sequelize, DataTypes) => {
-    const User = sequelize.define("user", {
+    const User = sequelize.define("User", {  
         userID: {
             type: DataTypes.INTEGER,
             allowNull: false,
@@ -25,7 +24,7 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             allowNull: false,
             validate: {
-                len: [8, 100]  // Password length validation
+                len: [8, 100] 
             }
         },
         user_address: {
@@ -43,30 +42,37 @@ module.exports = (sequelize, DataTypes) => {
         user_rating: {
             type: DataTypes.INTEGER,
             validate: {
-                min: 0, // Minimum rating
-                max: 5  // Maximum rating
+                min: 0,
+                max: 5  
             }
         }
     }, {
-        
         hooks: {
             beforeCreate: async (user) => {
                 if (user.password) {
-                    user.password = await hashPassword(user.password);  // Hash the password before saving
+                    user.password = await hashPassword(user.password); 
                 }
             },
             beforeUpdate: async (user) => {
                 if (user.changed('password')) {
-                    user.password = await hashPassword(user.password);  // Hash the password if it's updated
+                    user.password = await hashPassword(user.password); 
                 }
             }
         },
         sequelize,
-        modelName: 'User',  // Model name
-        tableName: 'users', // Table name
-        timestamps: true,   // Enable createdAt and updatedAt columns
-        paranoid: true      // Enable soft deletes (deletedAt column)
+        modelName: 'User',  
+        tableName: 'users', 
+        timestamps: true,  
+        paranoid: true    
     });
+
+
+    User.associate = (models) => {
+        User.hasMany(models.Product, {
+            foreignKey: 'seller_id',
+            as: 'products',
+        });
+    };
 
     return User;
 };
