@@ -19,7 +19,7 @@ module.exports = {
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL',
       },
-      CategoryID: {
+      categoryID: {
         allowNull: false,
         type: Sequelize.INTEGER,
         references: {
@@ -37,23 +37,24 @@ module.exports = {
         allowNull: true,
         type: Sequelize.TEXT, 
       },
-      prod_image: {
+      product_image: {
         allowNull: true,
         type: Sequelize.STRING,
       },
       keyTags: {
-        allowNull: false,
-        type: Sequelize.STRING,
+        allowNull: true,
+        type: Sequelize.ARRAY(Sequelize.STRING),
+        defaultValue: [],
       },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,
-        defaultValue: Sequelize.NOW, 
+        defaultValue: Sequelize.fn('NOW'), 
       },
       updatedAt: {
         allowNull: false,
         type: Sequelize.DATE,
-        defaultValue: Sequelize.NOW, 
+        defaultValue: Sequelize.fn('NOW'), 
       },
       deletedAt: {
         allowNull: true,
