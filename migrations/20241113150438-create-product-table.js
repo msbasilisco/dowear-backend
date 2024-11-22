@@ -29,16 +29,6 @@ module.exports = {
         onUpdate: 'CASCADE',
         onDelete: 'SET NULL',
       },
-      prodVariation: {
-        allowNull: false,
-        type: Sequelize.INTEGER,
-        references: {
-          model: 'variations',
-          key: 'variationID',
-        },
-        onUpdate: 'CASCADE',
-        onDelete: 'SET NULL',
-      },
       title: {
         allowNull: false,
         type: Sequelize.STRING,
