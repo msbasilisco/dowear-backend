@@ -10,7 +10,7 @@ module.exports = {
         type: Sequelize.INTEGER,
       },
       seller_id: {
-        allowNull: false,
+        allowNull: true,
         type: Sequelize.INTEGER,
         references: {
           model: 'users', 
@@ -20,7 +20,7 @@ module.exports = {
         onDelete: 'SET NULL',
       },
       categoryID: {
-        allowNull: false,
+        allowNull: true,
         type: Sequelize.INTEGER,
         references: {
           model: 'categories', 

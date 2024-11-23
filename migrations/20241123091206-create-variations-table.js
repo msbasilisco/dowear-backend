@@ -6,56 +6,51 @@ module.exports = {
     await queryInterface.createTable('variations', {
       variationID: {
         type: Sequelize.INTEGER,
-        allowNull: false,
         primaryKey: true,
-        autoIncrement: true, 
+        autoIncrement: true,
+        allowNull: false
       },
       productID: {
         type: Sequelize.INTEGER,
         allowNull: false,
         references: {
-          model: 'products',  
-          key: 'productID',   
+          model: 'products',
+          key: 'productID'
         },
         onUpdate: 'CASCADE',
-        onDelete: 'SET NULL',
+        onDelete: 'CASCADE'
       },
       variation: {
-        type: Sequelize.STRING,
-        allowNull: false,
+        type: Sequelize.STRING(255),
+        allowNull: false
       },
       price: {
-        type: Sequelize.FLOAT,
-        allowNull: false,
-        validate: {
-          min: 0, 
-        },
+        type: Sequelize.DECIMAL(10, 2),
+        allowNull: false
       },
       quantity: {
-        type: Sequelize.INTEGER, 
+        type: Sequelize.INTEGER,
         allowNull: false,
-        validate: {
-          min: 0, 
-        },
-      }, 
+        defaultValue: 0
+      },
       createdAt: {
-        allowNull: false,
         type: Sequelize.DATE,
-        defaultValue: Sequelize.NOW,
+        allowNull: false,
+        defaultValue: Sequelize.fn('NOW')
       },
       updatedAt: {
-        allowNull: false,
         type: Sequelize.DATE,
-        defaultValue: Sequelize.NOW,
+        allowNull: false,
+        defaultValue: Sequelize.fn('NOW')
       },
       deletedAt: {
-        allowNull: true,
-        type: Sequelize.DATE, 
-      },
+        type: Sequelize.DATE,
+        allowNull: true
+      }
     });
   },
 
   async down(queryInterface, Sequelize) {
     await queryInterface.dropTable('variations');
-  },
+  }
 };
