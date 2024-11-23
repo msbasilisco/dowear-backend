@@ -1,32 +1,34 @@
-const bcrypt = require('bcryptjs');  // To hash and compare passwords
+const bcrypt = require('bcryptjs');  
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../config/dbConfig'); 
 const db = require('../models');
-const User = db.users;
+const User = db.User;
 
 //for creating users
 const register = async (req, res) => {
-    const { email, username, password, city_address, user_rating } = req.body;
-
-    const existingUser = await User.findOne({ where: { username } });
-    if (existingUser) {
-        return res.status(400).send({ message: 'This username already exists!' });
-    }
-
-    const info = {
-        email: email,
-        username: username,
-        password: password,
-        city_address: city_address,
-        user_rating: user_rating
-    };
+    const { email, username, password, user_address, user_rating } = req.body;
 
     try {
+        
+        const existingUser = await User.findOne({ where: { username } });
+        if (existingUser) {
+            return res.status(400).send({ message: 'This username already exists!' });
+        }
+
+        const info = {
+            email: email,
+            username: username,
+            password: password,
+            city_address: user_address, // Changed from user_address to match model
+            user_rating: user_rating
+        };
+
         const reg = await User.create(info);
-        return res.status(200).send('Account successfully created!');
+        return res.status(200).send({ message: 'Account successfully created!' });
+
     } catch (error) {
         console.error(error);
-        return res.status(500).send('Error registering user.');
+        return res.status(500).send({ message: 'Error registering user.' });
     }
 };
 
@@ -35,7 +37,7 @@ const login = async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        // Find the user by email
+        
         const user = await User.findOne({ where: { email } });
         if (!user) {
             console.log('User not found:', email);
@@ -46,7 +48,7 @@ const login = async (req, res) => {
         console.log('Provided password:', password);
         console.log('Stored hashed password:', user.password);
 
-        // Compare passwords using bcrypt
+        
         const isMatch = await bcrypt.compare(password, user.password);
         console.log('Password comparison result:', isMatch);
 
@@ -54,7 +56,7 @@ const login = async (req, res) => {
             return res.status(400).send({ message: 'Incorrect password' });
         }
 
-        // Create JWT token
+        
         const token = jwt.sign(
             { userID: user.userID, email: user.email },
             JWT_SECRET,
@@ -75,7 +77,7 @@ const login = async (req, res) => {
 
 
 const getUserProfile = async (req, res) => {
-    const { email } = req.user;  // Extract email from JWT token
+    const { email } = req.user;  
 
     
     const user = await User.findOne({ where: { email } });
@@ -87,7 +89,7 @@ const getUserProfile = async (req, res) => {
         id: user.id,
         email: user.email,
         username: user.username,
-        city_address: user.city_address,
+        user_address: user.city_address,
         user_rating: user.user_rating
     });
 };
@@ -125,5 +127,5 @@ module.exports = {
     login,
     getUserProfile,
     getAllUsers,
-    authenticateToken  // Export the authentication middleware
+    authenticateToken  
 };
