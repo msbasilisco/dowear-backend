@@ -8,7 +8,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     seller_id: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
       references: {
         model: 'users',
         key: 'userID',
@@ -18,7 +18,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     categoryID: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
       references: {
         model: 'categories',
         key: 'categoryID',
@@ -37,11 +37,6 @@ module.exports = (sequelize, DataTypes) => {
     product_image: {
       type: DataTypes.STRING,
       allowNull: true,
-    },
-    keyTags: {
-      type: DataTypes.ARRAY(DataTypes.STRING),
-      allowNull: true,
-      defaultValue: [],
     }
   }, {
     modelName: 'Product',
@@ -64,6 +59,13 @@ module.exports = (sequelize, DataTypes) => {
     Product.hasMany(models.Variation, {
       foreignKey: 'productID',
       as: 'variations',
+    });
+
+    Product.belongsToMany(models.Tag, {
+      through: models.ProductTag,
+      foreignKey: 'productID',
+      otherKey: 'tagID',
+      as: 'tags'
     });
   };
 
