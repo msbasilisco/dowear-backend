@@ -41,11 +41,6 @@ module.exports = {
         allowNull: true,
         type: Sequelize.STRING,
       },
-      keyTags: {
-        allowNull: true,
-        type: Sequelize.ARRAY(Sequelize.STRING),
-        defaultValue: [],
-      },
       createdAt: {
         allowNull: false,
         type: Sequelize.DATE,
