@@ -109,9 +109,85 @@ const createProduct = async (req, res) => {
    }
 };
 
+
+const updateProduct = async (req, res) => {
+    try {
+        const{id} = req.params; // Get the product ID from the request parameters
+        const { title, description, product_image, keyTags, categoryID, variations } = req.body;
+
+        // Find the product by ID
+        const product = await Product.findByPk(id);
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                error: 'Product not found'
+            });
+        }
+
+        // Update the product details, excluding productID
+        const updatedProductData = {
+            title: title !== undefined ? title : product.title,
+            description: description !== undefined ? description : product.description,
+            product_image: product_image !== undefined ? product_image : product.product_image,
+            categoryID: categoryID !== undefined ? categoryID : product.categoryID
+        };
+
+        // Update the product in the database
+        await Product.update(updatedProductData, { where: { productID: id } });
+
+        // Handle variations if provided
+        if (variations) {
+            // Assuming you want to replace existing variations
+            await Variation.destroy({ where: { productID: id } }); // Remove existing variations
+
+            const variationsData = variations.map(({ variation, price, quantity }) => ({
+                variation: variation.trim(),
+                price: Number(price),
+                quantity: Number(quantity),
+                productID: id
+            }));
+
+            await Variation.bulkCreate(variationsData); // Add new variations
+        }
+
+        // Fetch the updated product with all relations
+        const updatedProduct = await Product.findOne({
+            where: { productID: id },
+            include: [
+                {
+                    model: Variation,
+                    as: 'variations'
+                },
+                {
+                    model: Category,
+                    as: 'category',
+                    attributes: ['categoryID', 'categoryName']
+                },
+                {
+                    model: Tag,
+                    as: 'tags',
+                    through: { attributes: [] }
+                }
+            ]
+        });
+
+        return res.status(200).json({
+            success: true,
+            message: 'Product updated successfully',
+            data: updatedProduct
+        });
+    } catch (error) {
+        console.error('Update product error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to update product',
+            message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        });
+    }
+};
 // const updateProduct = async (req, res) => {
 //     try {
-//         const {id} = req.params.id;
+//         const {id} = req.params;
 //         const [updated] = await Product.update(req.body, { where: {productID: id } });
 
 //         if (updated) {
@@ -234,6 +310,7 @@ const getAllTags = async (req, res) => {
 };
 module.exports = {
    createProduct,
+   updateProduct,
    deleteProduct,
    getProductsByTag,
    getAllTags
