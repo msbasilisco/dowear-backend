@@ -263,38 +263,45 @@ const getProductsByTag = async (req, res) => {
        });
    }
 };
-// Get all available tags
-const getAllTags = async (req, res) => {
-   try {
-       const tags = await Tag.findAll({
-           attributes: [
-               'tagID',
-               'name',
-               [
-                   db.sequelize.literal('(SELECT COUNT(*) FROM "ProductTags" WHERE "ProductTags"."tagID" = "Tag"."tagID")'),
-                   'productCount'
-               ]
-           ],
-           order: [[db.sequelize.literal('productCount'), 'DESC']]
-       });
+
+const getAllProductsByCategory = async (req, res) => {
+    try {
+        const { catID } = req.params; // Extract category ID from request parameters
+
+        // Fetch all products that belong to the specified category
+        const products = await Product.findAll({
+            where: { categoryID: catID }
+        });
+
+        // Check if products were found
+        if (products.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'No products found for this category'
+            });
+        }
+
+        // Return the products with a success response
         return res.status(200).json({
-           success: true,
-           data: tags
-       });
+            success: true,
+            data: products
+        });
     } catch (error) {
-       console.error('Get all tags error:', error);
-       return res.status(500).json({
-           success: false,
-           error: 'Failed to get tags',
-           message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-       });
-   }
-;
+        console.error('Get all products by category error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to get products',
+            message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        });
+    }
 };
+
+
 module.exports = {
    createProduct,
    updateProduct,
    deleteProduct,
    getProductsByTag,
-   getAllTags
+   getAllProductsByCategory
+  
 };
