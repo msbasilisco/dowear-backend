@@ -185,33 +185,7 @@ const updateProduct = async (req, res) => {
         });
     }
 };
-// const updateProduct = async (req, res) => {
-//     try {
-//         const {id} = req.params;
-//         const [updated] = await Product.update(req.body, { where: {productID: id } });
 
-//         if (updated) {
-//             const updatedProduct = await Product.findByPk(id);
-//             return res.status(200).json({
-//                 success: true,
-//                 message: 'Product updated successfully',
-//                 data: updatedProduct
-//             });
-//         }
-
-//         return res.status(404).json({
-//             success: false,
-//             error: 'Product not found'
-//         });
-//     } catch (error) {
-//         console.error('Update product error:', error);
-//         return res.status(500).json({
-//             success: false,
-//             error: 'Failed to update product',
-//             message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-//         });
-//     }
-// };
 
 const deleteProduct = async (req, res) => {
     try {
@@ -267,6 +241,15 @@ const getProductsByTag = async (req, res) => {
                }
            ]
        });
+
+       if (products.length === 0) {
+        return res.status(404).json({
+            success: false,
+            error: 'No products found for this tag'
+        });
+    }
+
+
         return res.status(200).json({
            success: true,
            data: products
