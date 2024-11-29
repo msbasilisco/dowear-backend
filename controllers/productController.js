@@ -220,48 +220,62 @@ const deleteProduct = async (req, res) => {
 
 // Get products by tag
 const getProductsByTag = async (req, res) => {
-   try {
-       const { tagName } = req.params;
+    try {
+        const { tagName } = req.params;
         const products = await Product.findAll({
-           include: [
-               {
-                   model: Tag,
-                   as: 'tags',
-                   where: { name: tagName.toLowerCase() },
-                   through: { attributes: [] }
-               },
-               {
-                   model: Variation,
-                   as: 'variations'
-               },
-               {
-                   model: Category,
-                   as: 'category',
-                   attributes: ['categoryID', 'categoryName']
-               }
-           ]
-       });
-
-       if (products.length === 0) {
-        return res.status(404).json({
-            success: false,
-            error: 'No products found for this tag'
+            include: [
+                {
+                    model: Tag,
+                    as: 'tags',
+                    where: { name: tagName.toLowerCase() },
+                    through: { attributes: [] }
+                },
+                {
+                    model: Variation,
+                    as: 'variations'
+                },
+                {
+                    model: Category,
+                    as: 'category',
+                    attributes: ['categoryID', 'categoryName']
+                }
+            ]
         });
-    }
 
+        if (products.length === 0) {
+            return res.status(404).json({
+                success: false,
+                error: 'No products found for this tag'
+            });
+        }
+
+        // Log the products found
+        console.log('Products found:', products);
+
+        // Fetch related items for each product
+        const productsWithRelated = await Promise.all(products.map(async (product) => {
+            try {
+                const relatedItems = await getRelatedItems(product.productID); // Ensure you're using the correct ID field
+                return { product, relatedItems };
+            } catch (error) {
+                console.error(`Error fetching related items for product ID ${product.productID}:`, error);
+                return { product, relatedItems: [] }; // Return the product with an empty related items array on error
+            }
+        }));
 
         return res.status(200).json({
-           success: true,
-           data: products
-       });
+            success: true,
+            data: productsWithRelated
+        });
+
     } catch (error) {
-       console.error('Get products by tag error:', error);
-       return res.status(500).json({
-           success: false,
-           error: 'Failed to get products',
-           message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-       });
-   }
+        console.error('Get products by tag error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to get products',
+            message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        });
+    }
 };
 
 const getAllProductsByCategory = async (req, res) => {
@@ -281,11 +295,24 @@ const getAllProductsByCategory = async (req, res) => {
             });
         }
 
-        // Return the products with a success response
+        console.log('Products found:', products);
+
+        const productsWithRelated = await Promise.all(products.map(async (product) => {
+            try {
+                const relatedItems = await getRelatedItems(product.productID); // Ensure you're using the correct ID field
+                return { product, relatedItems };
+            } catch (error) {
+                console.error(`Error fetching related items for product ID ${product.productID}:`, error);
+                return { product, relatedItems: [] }; // Return the product with an empty related items array on error
+            }
+        }));
+    
+
         return res.status(200).json({
             success: true,
-            data: products
+            data: productsWithRelated
         });
+
     } catch (error) {
         console.error('Get all products by category error:', error);
         return res.status(500).json({
@@ -296,12 +323,40 @@ const getAllProductsByCategory = async (req, res) => {
     }
 };
 
+const getRelatedItems = async (productId) => {
+    try {
+        // Find the product by ID
+        const product = await Product.findByPk(productId, {
+            include: [{ model: Tag, as: 'tags' }] // Include tags if you have a many-to-many relationship
+        });
+
+        if (!product) {
+            throw new Error('Product not found');
+        }
+
+        // Get related items based on the same category or tags
+        const relatedItems = await Product.findAll({
+            where: {
+                [db.Sequelize.Op.or]: [
+                    { categoryID: product.categoryID }, // Same category
+                    { id: { [db.Sequelize.Op.ne]: productId } } // Exclude the current product
+                ]
+            },
+            limit: 10 // Limit the number of related items returned
+        });
+
+        return relatedItems;
+    } catch (error) {
+        console.error('Error fetching related items:', error);
+        throw error;
+    }
+};
 
 module.exports = {
    createProduct,
    updateProduct,
    deleteProduct,
    getProductsByTag,
-   getAllProductsByCategory
-  
+   getAllProductsByCategory,
+   getRelatedItems
 };
