@@ -25,7 +25,7 @@ db.sequelize.authenticate()
 const userRoutes = require('./routes/userRoutes')
 const productRoutes = require('./routes/productRoutes')
 app.use('/api/users',userRoutes)
-app.use('/api/products/',productRoutes)
+app.use('/api',productRoutes)
 
 app.get('/', (req,res)=>{
     res.json({message: 'Connection has been established!'})
