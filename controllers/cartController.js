@@ -128,6 +128,10 @@ const removeFromCart = async (req, res) => {
 const getCart = async (req, res) => {
     try {
         const userID = req.user.userID;
+        
+        if (!userID) {
+            return res.status(401).send({ message: 'User not authenticated' });
+        }
 
         const cartItems = await Cart.findAll({
             where: { userID, status: 'active' },
@@ -138,12 +142,19 @@ const getCart = async (req, res) => {
             }]
         });
 
+        if (!cartItems || cartItems.length === 0) {
+            return res.status(200).send({ items: [], total: 0 });
+        }
+
         const total = cartItems.reduce((sum, item) => sum + Number(item.subtotal), 0);
         return res.status(200).send({ items: cartItems, total });
 
     } catch (error) {
         console.error('Get cart error:', error);
-        return res.status(500).send({ message: 'Failed to fetch cart' });
+        return res.status(500).send({ 
+            message: 'Failed to fetch cart',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+        });
     }
 };
 

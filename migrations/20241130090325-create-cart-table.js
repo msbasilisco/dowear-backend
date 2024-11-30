@@ -54,6 +54,11 @@ module.exports = {
         defaultValue: 'active',
         allowNull: false,
       },
+      unit_price: {
+        type: Sequelize.DECIMAL(10, 2),
+        allowNull: false,
+        defaultValue: 0.00,
+      },
       createdAt: {
         type: Sequelize.DATE,
         allowNull: false,

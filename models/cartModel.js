@@ -53,16 +53,22 @@ module.exports = (sequelize, DataTypes) => {
         defaultValue: 'active',
         allowNull: false,
         comment: 'active: in cart, checkout: selected for purchase'
-      }
+      },
+      unit_price: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: false,
+      },
     }, {
       modelName: 'Cart',
       tableName: 'cart',
       timestamps: true,
       paranoid: true,
       hooks: {
-        beforeSave: (cart) => {
-          // Automatically calculate subtotal
-          cart.subtotal = cart.unit_price * cart.quantity;
+        beforeSave: async (cart) => {
+          if (!cart.unit_price) {
+            throw new Error('Unit price is required for cart item');
+          }
+          cart.subtotal = Number(cart.unit_price) * cart.quantity;
         }
       }
     });
