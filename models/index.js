@@ -38,6 +38,7 @@ db.Category = require('./categoriesModel.js')(sequelize, DataTypes);
 db.Tag = require('./tagsModel.js')(sequelize, DataTypes);
 db.Variation = require('./variationModel.js')(sequelize, DataTypes);
 db.ProductTag = require('./productTagModel.js')(sequelize, DataTypes);
+db.Cart = require('./cartModel.js')(sequelize, DataTypes);
 
 // Initialize associations
 Object.values(db)
