@@ -25,15 +25,15 @@ db.sequelize.authenticate()
 const userRoutes = require('./routes/userRoutes')
 const productRoutes = require('./routes/productRoutes')
 const cartRoutes = require('./routes/cartRoutes')
-app.use('/api/users',userRoutes)
-app.use('/api',productRoutes)
+app.use('/api/users', userRoutes)
+app.use('/api', productRoutes)
 app.use('/api/cart', cartRoutes)
 
 app.get('/', (req,res)=>{
     res.json({message: 'Connection has been established!'})
 })
 
-const PORT = process.env.PORT || 3000
+const PORT = process.env.PORT || 5000
 
 db.sequelize
     .sync()
