@@ -1,107 +1,134 @@
-const bcrypt = require('bcryptjs');  
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { JWT_SECRET } = require('../config/dbConfig'); 
+const { JWT_SECRET } = require('../config/dbConfig');
 const db = require('../models');
 const User = db.User;
 
-//for creating users
+// For creating users
 const register = async (req, res) => {
     const { email, username, password, user_address, user_rating } = req.body;
 
     try {
-        
         const existingUser = await User.findOne({ where: { username } });
+        const existingEmail = await User.findOne({ where: { email } });
+
         if (existingUser) {
-            return res.status(400).send({ message: 'This username already exists!' });
+            return res.status(400).json({ message: 'This username already exists!' });
         }
 
-        const info = {
-            email: email,
-            username: username,
-            password: password,
-            city_address: user_address, // Changed from user_address to match model
-            user_rating: user_rating
-        };
+        if (existingEmail) {
+            return res.status(400).json({ message: 'This email already exists!' });
+        }
 
-        const reg = await User.create(info);
-        return res.status(200).send({ message: 'Account successfully created!' });
+        const hashedPassword = await bcrypt.hash(password, 10);
 
+        const newUser = await User.create({
+            email,
+            username,
+            password: hashedPassword,
+            city_address: user_address,
+            user_rating: user_rating || null,
+        });
+
+        return res.status(201).json({ message: 'Account successfully created!', user: newUser });
     } catch (error) {
-        console.error(error);
-        return res.status(500).send({ message: 'Error registering user.' });
+        console.error('Error registering user:', error);
+        return res.status(500).json({ message: 'Error registering user.' });
     }
 };
 
-//Login
+// Login
 const login = async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        
+        // Find user by email
         const user = await User.findOne({ where: { email } });
         if (!user) {
-            console.log('User not found:', email);
-            return res.status(400).send({ message: 'Sorry, user not found' });
+            return res.status(400).json({ message: 'User not found' });
         }
 
-        console.log(user);
-        console.log('Provided password:', password);
-        console.log('Stored hashed password:', user.password);
-
-        
+        // Compare provided password with stored hashed password
         const isMatch = await bcrypt.compare(password, user.password);
-        console.log('Password comparison result:', isMatch);
-
         if (!isMatch) {
-            return res.status(400).send({ message: 'Incorrect password' });
+            return res.status(400).json({ message: 'Incorrect password' });
         }
 
-        
+        // Generate JWT token
         const token = jwt.sign(
-            { userID: user.userID, email: user.email },
+            { userID: user.id, email: user.email },
             JWT_SECRET,
             { expiresIn: '1h' }
         );
 
         return res.status(200).json({
             message: 'Login Successful!',
-            token: token
+            token,
+            user: { id: user.id, email: user.email, username: user.username },
         });
     } catch (error) {
-        console.error("Error during login:", error);
-        return res.status(500).send({ message: 'An error occurred during login.' });
+        console.error('Error during login:', error);
+        return res.status(500).json({ message: 'An error occurred during login.' });
     }
 };
 
-
-
-
-const getUserProfile = async (req, res) => {
-    const { email } = req.user;  
-
-    
-    const user = await User.findOne({ where: { email } });
-    if (!user) {
-        return res.status(400).send({ message: 'User not found!' });
+// Fetch cities
+const getCities = (req, res) => {
+    const cities = [
+      'Angeles City', 'Antipolo', 'Bacolod', 'Bacoor', 'Baguio', 'Batangas', 
+      'Bogo City', 'Butuan City', 'Cabanatuan City', 'Cabuyao City', 'CDO City', 
+      'Calamba City', 'Calapan City', 'Caloocan City', 'Carcar City', 'Cebu City', 
+      'Cotabato City', 'Danao City', 'Davao City', 'Dipolog City', 'Dumaguete City',
+      'Gapan City', 'Guihulngan City', 'Iloilo City', 'Lapu-lapu City', 'Lipa City',
+      'Lucena City', 'Makati City', 'Malabon City', 'Mandaue City', 'Malolos City', 
+      'Naga City', 'Pasig City', 'Pasay City', 'Quezon City', 'Roxas City', 'San Carlos City',
+      'Santiago City', 'Tagaytay City', 'Talisay City', 'Tarlac City', 'Valencia City', 
+      'Zamboanga City', 'Vigan City', 'Valenzuela City'
+    ];
+    if(cities.length > 0){
+      return res.json(cities);
+    }else{
+      return res.json({ message: 'No cities found' });
     }
+  };
+  
 
-    res.status(200).send({
-        id: user.id,
-        email: user.email,
-        username: user.username,
-        user_address: user.city_address,
-        user_rating: user.user_rating
-    });
+
+// Get user profile (Authenticated route)
+const getUserProfile = async (req, res) => {
+    try {
+        const { email } = req.user; // Extract email from authenticated token
+
+        // Fetch user details
+        const user = await User.findOne({ where: { email } });
+        if (!user) {
+            return res.status(404).json({ message: 'User not found!' });
+        }
+
+        // Return user profile details
+        return res.status(200).json({
+            id: user.id,
+            email: user.email,
+            username: user.username,
+            user_address: user.city_address,
+            user_rating: user.user_rating,
+        });
+    } catch (error) {
+        console.error('Error fetching user profile:', error);
+        return res.status(500).json({ message: 'Error fetching user profile.' });
+    }
 };
 
 // Display all users
 const getAllUsers = async (req, res) => {
     try {
-        let users = await User.findAll();
-        res.status(200).send(users);
+        const users = await User.findAll({
+            attributes: ['id', 'email', 'username', 'city_address', 'user_rating'], // Limit returned fields
+        });
+        return res.status(200).json(users);
     } catch (error) {
-        console.error(error);
-        res.status(500).send('Error fetching users.');
+        console.error('Error fetching users:', error);
+        return res.status(500).json({ message: 'Error fetching users.' });
     }
 };
 
@@ -117,7 +144,7 @@ const authenticateToken = (req, res, next) => {
         if (err) {
             return res.status(403).json({ message: 'Invalid or expired token' });
         }
-        req.user = user;  // Attach user info to the request
+        req.user = user; // Attach user info to the request
         next();
     });
 };
@@ -127,5 +154,6 @@ module.exports = {
     login,
     getUserProfile,
     getAllUsers,
-    authenticateToken  
+    authenticateToken,
+    getCities
 };
