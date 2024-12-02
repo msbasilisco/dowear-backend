@@ -188,10 +188,42 @@ const toggleSelection = async (req, res) => {
     }
 };
 
+// Check if user has items ready for checkout
+const getCheckoutItems = async (req, res) => {
+    try {
+        const userID = req.user.userID;
+        
+        const checkoutItems = await Cart.findAll({
+            where: { userID, status: 'checkout' },
+            include: [{
+                model: Product,
+                as: 'product',
+                include: [{ model: Variation, as: 'variations' }]
+            }]
+        });
+
+        const total = checkoutItems.reduce((sum, item) => sum + Number(item.subtotal), 0);
+        
+        return res.status(200).send({ 
+            canCheckout: checkoutItems.length > 0,
+            items: checkoutItems,
+            total
+        });
+
+    } catch (error) {
+        console.error('Get checkout items error:', error);
+        return res.status(500).send({ 
+            message: 'Failed to fetch checkout items',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined 
+        });
+    }
+};
+
 module.exports = {
     addToCart,
     updateQuantity,
     removeFromCart,
     getCart,
     toggleSelection,
+    getCheckoutItems,
 };
