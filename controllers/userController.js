@@ -34,13 +34,13 @@ const register = async (req, res) => {
 
 //Login
 const login = async (req, res) => {
-    const { email, password } = req.body;
+    const { username, password } = req.body;
 
     try {
         
-        const user = await User.findOne({ where: { email } });
+        const user = await User.findOne({ where: { username } });
         if (!user) {
-            console.log('User not found:', email);
+            console.log('User not found:', username);
             return res.status(400).send({ message: 'Sorry, user not found' });
         }
 
@@ -58,7 +58,7 @@ const login = async (req, res) => {
 
         
         const token = jwt.sign(
-            { userID: user.userID, email: user.email },
+            { userID: user.userID, username: user.username },
             JWT_SECRET,
             { expiresIn: '1h' }
         );
