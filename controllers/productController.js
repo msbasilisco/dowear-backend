@@ -352,11 +352,33 @@ const getRelatedItems = async (productId) => {
     }
 };
 
+const getAllProducts = async (req, res) => {
+    try {
+        
+        const randomProducts = await Product.findAll({
+            order: db.sequelize.random()
+        });
+
+        return res.status(200).json({
+            success: true,
+            data: randomProducts
+        });
+    } catch (error) {
+        console.error('Get all products error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to get products',
+            message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        });
+    }
+};
+
 module.exports = {
    createProduct,
    updateProduct,
    deleteProduct,
    getProductsByTag,
    getAllProductsByCategory,
-   getRelatedItems
+   getRelatedItems,
+   getAllProducts
 };
