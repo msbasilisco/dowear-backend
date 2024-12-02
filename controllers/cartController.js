@@ -43,7 +43,7 @@ const addToCart = async (req, res) => {
         }
 
         const cartItem = await Cart.create({
-            userID, productID, variationID, quantity, subtotal, status: 'active'
+            userID, productID, variationID, quantity, unit_price: price, subtotal, status: 'active'
         });
 
         return res.status(201).send({ message: 'Item added to cart', data: cartItem });
