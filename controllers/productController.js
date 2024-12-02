@@ -352,6 +352,28 @@ const getRelatedItems = async (productId) => {
     }
 };
 
+const getLatestProducts = async( req, res)=>{
+    try{
+        const latestProducts = await Product.findAll({
+            order: [['createdAt', 'DESC']],
+            limit: 15
+        });
+    
+        return res.status(200).json({
+            success: true,
+            data: latestProducts
+        });
+    }catch(error){
+        console.error('Get latest products error:', error);
+        return res.status(500).json({
+            success: false,
+            error: 'Failed to get latest products',
+            message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+        });
+    }
+
+}
+
 const getAllProducts = async (req, res) => {
     try {
         
@@ -380,5 +402,6 @@ module.exports = {
    getProductsByTag,
    getAllProductsByCategory,
    getRelatedItems,
-   getAllProducts
+   getAllProducts,
+   getLatestProducts
 };
