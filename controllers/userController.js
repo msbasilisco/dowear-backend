@@ -42,19 +42,11 @@ const login = async (req, res) => {
     const { username, password } = req.body;
 
     try {
-<<<<<<< HEAD
         
         const user = await User.findOne({ where: { username } });
         if (!user) {
             console.log('User not found:', username);
             return res.status(400).send({ message: 'Sorry, user not found' });
-=======
-        // Find user by email
-        const user = await User.findOne({ where: { email } });
-        if (!user) {
-            return res.status(400).json({ message: 'User not found' });
->>>>>>> 98d29e853729600533a2cbf0ec2b4972af07a3e0
-        }
 
         // Compare provided password with stored hashed password
         const isMatch = await bcrypt.compare(password, user.password);
@@ -62,13 +54,12 @@ const login = async (req, res) => {
             return res.status(400).json({ message: 'Incorrect password' });
         }
 
+    }
+
         // Generate JWT token
         const token = jwt.sign(
-<<<<<<< HEAD
-            { userID: user.userID, username: user.username },
-=======
+
             { userID: user.id, email: user.email },
->>>>>>> 98d29e853729600533a2cbf0ec2b4972af07a3e0
             JWT_SECRET,
             { expiresIn: '1h' }
         );
