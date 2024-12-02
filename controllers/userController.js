@@ -42,23 +42,18 @@ const login = async (req, res) => {
     const { username, password } = req.body;
 
     try {
-        
+       
         const user = await User.findOne({ where: { username } });
         if (!user) {
-            console.log('User not found:', username);
-            return res.status(400).send({ message: 'Sorry, user not found' });
+            return res.status(400).json({ message: 'Sorry, user not found' });
+        }
 
-        // Compare provided password with stored hashed password
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ message: 'Incorrect password' });
         }
 
-    }
-
-        // Generate JWT token
         const token = jwt.sign(
-
             { userID: user.id, email: user.email },
             JWT_SECRET,
             { expiresIn: '1h' }
