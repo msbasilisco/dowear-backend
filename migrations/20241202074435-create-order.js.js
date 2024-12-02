@@ -41,6 +41,32 @@ module.exports = {
         type: Sequelize.DECIMAL(10, 2),
         allowNull: false,
       },
+      payment_method: {
+        type: Sequelize.ENUM('cod', 'gcash', 'maya'),
+        allowNull: false,
+      },
+      order_date: {
+        type: Sequelize.DATE,
+        allowNull: false,
+        defaultValue: Sequelize.NOW,
+      },
+      status: {
+        type: Sequelize.ENUM('pending', 'processing', 'shipped', 'delivered', 'cancelled'),
+        defaultValue: 'pending',
+        allowNull: false
+      },
+      createdAt: {
+        type: Sequelize.DATE,
+        allowNull: false,
+      },
+      updatedAt: {
+        type: Sequelize.DATE,
+        allowNull: false,
+      },
+      deletedAt: {
+        type: Sequelize.DATE,
+        allowNull: true,
+      }
     });
   },
 
