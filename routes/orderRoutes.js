@@ -10,6 +10,7 @@ router.put('/:orderID/cancel', authenticateToken, orderController.cancelOrder)
 
 // Get order information
 router.get('/all', authenticateToken, orderController.getOrders)
+router.get('/history', authenticateToken, orderController.getOrdersByStatus)
 router.get('/:orderID', authenticateToken, orderController.getOrderDetails)
 
 module.exports = router
