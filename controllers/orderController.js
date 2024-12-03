@@ -177,6 +177,7 @@ const getOrders = async (req, res) => {
 };
 
 // Get orders by status (delivered/cancelled)
+//USE FOR ORDER HISTORY
 const getOrdersByStatus = async (req, res) => {
     try {
         const userID = req.user.userID;
