@@ -146,7 +146,7 @@ const updateShippingDetails = async (req, res) => {
     }
 };
 
-// Get user's orders
+// Get all orders
 const getOrders = async (req, res) => {
     try {
         const userID = req.user.userID;
@@ -167,9 +167,50 @@ const getOrders = async (req, res) => {
             success: true,
             data: orders
         });
-
     } catch (error) {
         console.error('Get orders error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to fetch orders'
+        });
+    }
+};
+
+// Get orders by status (delivered/cancelled)
+const getOrdersByStatus = async (req, res) => {
+    try {
+        const userID = req.user.userID;
+        const { status } = req.query; // status can be 'delivered' or 'cancelled'
+        
+        if (!['delivered', 'cancelled'].includes(status)) {
+            return res.status(400).json({
+                success: false,
+                message: 'Invalid status parameter'
+            });
+        }
+
+        const orders = await Order.findAll({
+            where: { 
+                userID,
+                status: status 
+            },
+            include: [{
+                model: db.OrderItem,
+                as: 'items',
+                include: [{
+                    model: Product,
+                    as: 'product'
+                }]
+            }],
+            order: [['createdAt', 'DESC']]
+        });
+
+        return res.status(200).json({
+            success: true,
+            data: orders
+        });
+    } catch (error) {
+        console.error('Get orders by status error:', error);
         return res.status(500).json({
             success: false,
             message: 'Failed to fetch orders'
@@ -336,6 +377,7 @@ module.exports = {
     createOrder,
     updateShippingDetails,
     getOrders,
+    getOrdersByStatus,
     cancelOrder,
     getOrderDetails,
     updateOrderStatus
