@@ -1,16 +1,17 @@
 const orderController = require('../controllers/orderController')
-const { authenticateToken } = require('../controllers/userController')
+// const { authenticateToken } = require('../controllers/userController')
+const { protect } = require('../middleware/authMiddleware');
 const router = require('express').Router()
 
 // Create and manage orders
-router.post('/create', authenticateToken, orderController.createOrder)
-router.put('/:orderID/shipping', authenticateToken, orderController.updateShippingDetails)
-router.put('/:orderID/status', authenticateToken, orderController.updateOrderStatus)
-router.put('/:orderID/cancel', authenticateToken, orderController.cancelOrder)
+router.post('/create', protect, orderController.createOrder)
+router.put('/:orderID/status', protect, orderController.updateOrderStatus)
+router.put('/:orderID/shipping', protect, orderController.updateShippingDetails)
+router.put('/:orderID/cancel', protect, orderController.cancelOrder)
 
 // Get order information
-router.get('/all', authenticateToken, orderController.getOrders)
-router.get('/history', authenticateToken, orderController.getOrdersByStatus)
-router.get('/:orderID', authenticateToken, orderController.getOrderDetails)
+router.get('/all', protect, orderController.getOrders)
+router.get('/history', protect, orderController.getOrdersByStatus)
+router.get('/:orderID', protect, orderController.getOrderDetails)
 
 module.exports = router
