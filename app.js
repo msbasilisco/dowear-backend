@@ -33,7 +33,7 @@ app.get('/', (req,res)=>{
     res.json({message: 'Connection has been established!'})
 })
 
-const PORT = process.env.PORT || 5000
+const PORT = process.env.PORT || 3000
 
 db.sequelize
     .sync()
