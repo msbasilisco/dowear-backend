@@ -20,12 +20,11 @@ const register = async (req, res) => {
             return res.status(400).json({ message: 'This email already exists!' });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10);
 
         const newUser = await User.create({
-            email,
-            username,
-            password: hashedPassword,
+            email: email,
+            username: username,
+            password: password,
             city_address: user_address,
             user_rating: user_rating || null,
         });
@@ -44,6 +43,8 @@ const login = async (req, res) => {
     try {
        
         const user = await User.findOne({ where: { username } });
+        console.log('Fetched User: ',user)
+
         if (!user) {
             return res.status(400).json({ message: 'Sorry, user not found' });
         }
@@ -54,7 +55,7 @@ const login = async (req, res) => {
         }
 
         const token = jwt.sign(
-            { userID: user.id, email: user.email },
+            { userID: user.userID, email: user.email },
             JWT_SECRET,
             { expiresIn: '1h' }
         );
@@ -130,22 +131,6 @@ const getAllUsers = async (req, res) => {
     }
 };
 
-// Middleware to verify JWT token (Authentication)
-const authenticateToken = (req, res, next) => {
-    const token = req.header('Authorization')?.split(' ')[1]; // Token is expected in "Authorization: Bearer <token>"
-
-    if (!token) {
-        return res.status(401).json({ message: 'Access denied. No token provided.' });
-    }
-
-    jwt.verify(token, JWT_SECRET, (err, user) => {
-        if (err) {
-            return res.status(403).json({ message: 'Invalid or expired token' });
-        }
-        req.user = user; // Attach user info to the request
-        next();
-    });
-};
 
 module.exports = {
     register,
