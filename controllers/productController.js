@@ -196,45 +196,16 @@ const updateProduct = async (req, res) => {
 };
 
 
-// const deleteProduct = async (req, res) => {
-//     try {
-//         const { id } = req.params;
-//         console.log(`Attempting to delete product with ID: ${id}`); // Log the ID
-        
-//         const deleted = await Product.destroy({ where: { productID: id } });
-//         console.log(`Delete result: ${deleted}`); // Log the result of the delete operation
-
-//         if (deleted) {
-//             return res.status(200).json({
-//                 success: true,
-//                 message: 'Product deleted successfully'
-//             });
-//         }
-
-//         return res.status(404).json({
-//             success: false,
-//             error: 'Product not found'
-//         });
-//     } catch (error) {
-//         console.error('Delete product error:', error);
-//         return res.status(500).json({
-//             success: false,
-//             error: 'Failed to delete product',
-//             message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-//         });
-//     }
-// };
-
 const deleteProduct = async (req, res) => {
     try {
         const { id } = req.params;
-        const userId = req.user.userID; // Get the userID from the authenticated user
-        console.log(`Attempting to delete product with ID: ${id}`); // Log the ID
+        const userId = req.user.userID; 
+        console.log(`Attempting to delete product with ID: ${id}`); 
 
-        // Find the product by ID
+        
         const product = await Product.findOne({ where: { productID: id } });
 
-        // Check if the product exists
+        
         if (!product) {
             return res.status(404).json({
                 success: false,
@@ -242,7 +213,7 @@ const deleteProduct = async (req, res) => {
             });
         }
 
-        // Check if the user is the seller of the product
+       
         if (product.seller_id !== userId) {
             return res.status(403).json({
                 success: false,
@@ -250,7 +221,7 @@ const deleteProduct = async (req, res) => {
             });
         }
 
-        // Proceed to delete the product
+       
         const deleted = await Product.destroy({ where: { productID: id } });
         console.log(`Delete result: ${deleted}`); // Log the result of the delete operation
 
@@ -307,17 +278,17 @@ const getProductsByTag = async (req, res) => {
             });
         }
 
-        // Log the products found
+       
         console.log('Products found:', products);
 
-        // Fetch related items for each product
+       
         const productsWithRelated = await Promise.all(products.map(async (product) => {
             try {
-                const relatedItems = await getRelatedItems(product.productID); // Ensure you're using the correct ID field
+                const relatedItems = await getRelatedItems(product.productID); 
                 return { product, relatedItems };
             } catch (error) {
                 console.error(`Error fetching related items for product ID ${product.productID}:`, error);
-                return { product, relatedItems: [] }; // Return the product with an empty related items array on error
+                return { product, relatedItems: [] }; 
             }
         }));
 
@@ -338,14 +309,14 @@ const getProductsByTag = async (req, res) => {
 
 const getAllProductsByCategory = async (req, res) => {
     try {
-        const { catID } = req.params; // Extract category ID from request parameters
+        const { catID } = req.params; 
 
-        // Fetch all products that belong to the specified category
+        
         const products = await Product.findAll({
             where: { categoryID: catID }
         });
 
-        // Check if products were found
+       
         if (products.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -357,11 +328,11 @@ const getAllProductsByCategory = async (req, res) => {
 
         const productsWithRelated = await Promise.all(products.map(async (product) => {
             try {
-                const relatedItems = await getRelatedItems(product.productID); // Ensure you're using the correct ID field
+                const relatedItems = await getRelatedItems(product.productID); 
                 return { product, relatedItems };
             } catch (error) {
                 console.error(`Error fetching related items for product ID ${product.productID}:`, error);
-                return { product, relatedItems: [] }; // Return the product with an empty related items array on error
+                return { product, relatedItems: [] }; 
             }
         }));
     
@@ -383,24 +354,24 @@ const getAllProductsByCategory = async (req, res) => {
 
 const getRelatedItems = async (productId) => {
     try {
-        // Find the product by ID
+       
         const product = await Product.findByPk(productId, {
-            include: [{ model: Tag, as: 'tags' }] // Include tags if you have a many-to-many relationship
+            include: [{ model: Tag, as: 'tags' }] 
         });
 
         if (!product) {
             throw new Error('Product not found');
         }
 
-        // Get related items based on the same category or tags
+        
         const relatedItems = await Product.findAll({
             where: {
                 [db.Sequelize.Op.or]: [
-                    { categoryID: product.categoryID }, // Same category
-                    { id: { [db.Sequelize.Op.ne]: productId } } // Exclude the current product
+                    { categoryID: product.categoryID }, 
+                    { id: { [db.Sequelize.Op.ne]: productId } }
                 ]
             },
-            limit: 10 // Limit the number of related items returned
+            limit: 10 
         });
 
         return relatedItems;
