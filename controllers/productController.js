@@ -109,13 +109,15 @@ const createProduct = async (req, res) => {
    }
 };
 
-
 const updateProduct = async (req, res) => {
     try {
-        const{id} = req.params; // Get the product ID from the request parameters
-        const { title, description, product_image, keyTags, categoryID, variations } = req.body;
+        const { id } = req.params; 
+        const { title, description, product_image, categoryID, variations } = req.body;
 
-        // Find the product by ID
+        
+        const userId = req.user.userID; 
+
+       
         const product = await Product.findByPk(id);
         if (!product) {
             return res.status(404).json({
@@ -124,7 +126,15 @@ const updateProduct = async (req, res) => {
             });
         }
 
-        // Update the product details, excluding productID
+        
+        if (product.seller_id !== userId) {
+            return res.status(403).json({
+                success: false,
+                error: 'You are not authorized to update this product'
+            });
+        }
+
+       
         const updatedProductData = {
             title: title !== undefined ? title : product.title,
             description: description !== undefined ? description : product.description,
@@ -132,12 +142,11 @@ const updateProduct = async (req, res) => {
             categoryID: categoryID !== undefined ? categoryID : product.categoryID
         };
 
-        // Update the product in the database
+        
         await Product.update(updatedProductData, { where: { productID: id } });
 
-        // Handle variations if provided
+       
         if (variations) {
-            // Assuming you want to replace existing variations
             await Variation.destroy({ where: { productID: id } }); // Remove existing variations
 
             const variationsData = variations.map(({ variation, price, quantity }) => ({
@@ -147,10 +156,10 @@ const updateProduct = async (req, res) => {
                 productID: id
             }));
 
-            await Variation.bulkCreate(variationsData); // Add new variations
+            await Variation.bulkCreate(variationsData);
         }
 
-        // Fetch the updated product with all relations
+      
         const updatedProduct = await Product.findOne({
             where: { productID: id },
             include: [
@@ -187,11 +196,61 @@ const updateProduct = async (req, res) => {
 };
 
 
+// const deleteProduct = async (req, res) => {
+//     try {
+//         const { id } = req.params;
+//         console.log(`Attempting to delete product with ID: ${id}`); // Log the ID
+        
+//         const deleted = await Product.destroy({ where: { productID: id } });
+//         console.log(`Delete result: ${deleted}`); // Log the result of the delete operation
+
+//         if (deleted) {
+//             return res.status(200).json({
+//                 success: true,
+//                 message: 'Product deleted successfully'
+//             });
+//         }
+
+//         return res.status(404).json({
+//             success: false,
+//             error: 'Product not found'
+//         });
+//     } catch (error) {
+//         console.error('Delete product error:', error);
+//         return res.status(500).json({
+//             success: false,
+//             error: 'Failed to delete product',
+//             message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+//         });
+//     }
+// };
+
 const deleteProduct = async (req, res) => {
     try {
         const { id } = req.params;
+        const userId = req.user.userID; // Get the userID from the authenticated user
         console.log(`Attempting to delete product with ID: ${id}`); // Log the ID
-        
+
+        // Find the product by ID
+        const product = await Product.findOne({ where: { productID: id } });
+
+        // Check if the product exists
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                error: 'Product not found'
+            });
+        }
+
+        // Check if the user is the seller of the product
+        if (product.seller_id !== userId) {
+            return res.status(403).json({
+                success: false,
+                error: 'You are not authorized to delete this product'
+            });
+        }
+
+        // Proceed to delete the product
         const deleted = await Product.destroy({ where: { productID: id } });
         console.log(`Delete result: ${deleted}`); // Log the result of the delete operation
 
@@ -215,7 +274,6 @@ const deleteProduct = async (req, res) => {
         });
     }
 };
-
 
 
 // Get products by tag
