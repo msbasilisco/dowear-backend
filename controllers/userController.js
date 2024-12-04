@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { JWT_SECRET } = require('../config/dbConfig');
 const db = require('../models');
+const { protect } = require('../middleware/authMiddleware');
 const User = db.User;
 
 // For creating users
@@ -137,6 +138,5 @@ module.exports = {
     login,
     getUserProfile,
     getAllUsers,
-    authenticateToken,
     getCities
 };
