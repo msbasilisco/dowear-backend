@@ -11,7 +11,7 @@ const createProduct = async (req, res) => {
            categoryID, 
            variations 
        } = req.body;
-        // Validate required fields
+     
        const requiredFields = {
            title: !title?.trim() && 'Product title is required',
            categoryID: !categoryID && 'Category is required',
@@ -26,7 +26,7 @@ const createProduct = async (req, res) => {
                error: missingField[1]
            });
        }
-        // Validate variations format
+       
        const isValidVariations = variations.every(({ variation, price, quantity }) => 
            typeof variation === 'string' && variation.trim() &&
            typeof price === 'number' && price > 0 &&
@@ -38,9 +38,9 @@ const createProduct = async (req, res) => {
                error: 'Each variation must have a name, positive price, and non-negative quantity'
            });
        }
-        // Create product with variations and tags in a transaction
+        
        const result = await db.sequelize.transaction(async (transaction) => {
-           // Create the product
+          
            const product = await Product.create({
                title: title.trim(),
                description: description?.trim() || null,
@@ -48,7 +48,7 @@ const createProduct = async (req, res) => {
                categoryID,
                seller_id
            }, { transaction });
-            // Handle tags if provided
+           
            if (keyTags) {
                const tagNames = keyTags
                    .split(/\s+/)
@@ -64,7 +64,7 @@ const createProduct = async (req, res) => {
                );
                 await product.setTags(tags, { transaction });
            }
-            // Handle variations
+         
            const variationsData = variations.map(({ variation, price, quantity }) => ({
                variation: variation.trim(),
                price: Number(price),
@@ -72,7 +72,7 @@ const createProduct = async (req, res) => {
                productID: product.productID
            }));
             await Variation.bulkCreate(variationsData, { transaction });
-            // Fetch created product with all relations
+          
            return await Product.findOne({
                where: { productID: product.productID },
                include: [
