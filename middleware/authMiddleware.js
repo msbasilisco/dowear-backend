@@ -1,5 +1,13 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
+const session = require('express-session');
+
+const ensureAuthenticated = (req, res, next) => {
+    if (req.session && req.session.user) {
+        return next();
+    }
+    return res.status(401).json({ message: "Unauthorized. Please log in." });
+};
 
 const protect = async (req, res, next) => {
     try {
@@ -25,8 +33,8 @@ const protect = async (req, res, next) => {
             });
         }
 
-        req.user = user;  // Attach user to the request object
-        next();  // Proceed to the next middleware
+        req.user = user;
+        next();
     } catch (error) {
         console.error('Auth middleware error:', error);
         res.status(401).json({
@@ -37,4 +45,4 @@ const protect = async (req, res, next) => {
     }
 };
 
-module.exports = { protect };
+module.exports = { protect, ensureAuthenticated };
