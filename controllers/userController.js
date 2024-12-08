@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const { JWT_SECRET } = require('../config/dbConfig');
+// const { JWT_SECRET } = require('../config/dbConfig');
 const db = require('../models');
 const { protect } = require('../middleware/authMiddleware');
 const User = db.User;
@@ -26,7 +26,7 @@ const register = async (req, res) => {
             email: email,
             username: username,
             password: password,
-            city_address: user_address,
+            user_address: user_address,
             user_rating: user_rating || null,
         });
 
@@ -42,34 +42,54 @@ const login = async (req, res) => {
     const { username, password } = req.body;
 
     try {
-       
-        const user = await User.findOne({ where: { username } });
-        console.log('Fetched User: ',user)
-
-        if (!user) {
-            return res.status(400).json({ message: 'Sorry, user not found' });
+        if (!username || !password) {
+            return res.status(400).json({ message: 'Username and password are required.' });
         }
 
+        console.log('Login request body:', req.body);
+
+        const user = await User.findOne({ where: { username } });
+        console.log('Fetched user:', user);
+
+        if (!user) {
+            return res.status(400).json({ message: 'User not found' });
+        }
+
+        // compare passwords
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
             return res.status(400).json({ message: 'Incorrect password' });
         }
 
+        const JWT_SECRET = process.env.JWT_SECRET;
         const token = jwt.sign(
-            { userID: user.userID, email: user.email },
+            { userID: user.id, email: user.email },
             JWT_SECRET,
             { expiresIn: '1h' }
         );
 
+        // create session
+        req.session.user = { id: user.id, username: user.username, email: user.email };
+
         return res.status(200).json({
-            message: 'Login Successful!',
+            message: 'Login successful!',
             token,
             user: { id: user.id, email: user.email, username: user.username },
         });
     } catch (error) {
-        console.error('Error during login:', error);
+        console.error('Error during login:', error.message);
         return res.status(500).json({ message: 'An error occurred during login.' });
     }
+};
+
+const logout = (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            return res.status(500).json({ message: "Logout failed." });
+        }
+        // res.clearCookie('connect.sid'); // Clear session cookie
+        return res.status(200).json({ message: "Logout successful." });
+    });
 };
 
 // Fetch cities
@@ -91,13 +111,11 @@ const getCities = (req, res) => {
       return res.json({ message: 'No cities found' });
     }
   };
-  
-
 
 // Get user profile (Authenticated route)
 const getUserProfile = async (req, res) => {
     try {
-        const { email } = req.user; // Extract email from authenticated token
+        const { email } = req.user;
 
         // Fetch user details
         const user = await User.findOne({ where: { email } });
@@ -123,7 +141,7 @@ const getUserProfile = async (req, res) => {
 const getAllUsers = async (req, res) => {
     try {
         const users = await User.findAll({
-            attributes: ['id', 'email', 'username', 'city_address', 'user_rating'], // Limit returned fields
+            attributes: ['id', 'email', 'username', 'city_address', 'user_rating'],
         });
         return res.status(200).json(users);
     } catch (error) {
@@ -132,11 +150,20 @@ const getAllUsers = async (req, res) => {
     }
 };
 
+const getSession = (req, res) => {
+    if (req.session && req.session.user) {
+        return res.status(200).json({ user: req.session.user });
+    }
+    return res.status(401).json({ message: 'No active session' });
+};
+
 
 module.exports = {
     register,
     login,
+    logout,
     getUserProfile,
     getAllUsers,
-    getCities
+    getCities,
+    getSession,
 };
