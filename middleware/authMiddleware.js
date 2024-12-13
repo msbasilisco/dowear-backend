@@ -10,38 +10,28 @@ const ensureAuthenticated = (req, res, next) => {
 };
 
 const protect = async (req, res, next) => {
-    try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({
-                success: false,
-                message: 'No token provided'
-            });
+    let token;
+
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        try {
+            token = req.headers.authorization.split(' ')[1];
+
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            req.user = await User.findOne({ where: { email: decoded.email } });
+
+            if (!req.user) {
+                return res.status(401).json({ message: 'User not found!' });
+            }
+
+            next();
+        } catch (error) {
+            console.error('Token verification failed:', error);
+            return res.status(401).json({ message: 'Not authorized, token failed!' });
         }
-        const token = authHeader.split(' ')[1];
+    }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log(decoded);
-
-        // Find the user by the userID stored in the token
-        const user = await User.findByPk(decoded.userID);
-
-        if (!user) {
-            return res.status(401).json({
-                success: false,
-                message: 'User not found'
-            });
-        }
-
-        req.user = user;
-        next();
-    } catch (error) {
-        console.error('Auth middleware error:', error);
-        res.status(401).json({
-            success: false,
-            message: 'Not authorized',
-            error: error.message
-        });
+    if (!token) {
+        return res.status(401).json({ message: 'Not authorized, no token!' });
     }
 };
 
