@@ -1,123 +1,177 @@
+const { cloudinary, storage } = require('../config/cloudinaryConfig'); 
 const db = require('../models');
 const { Product, Category, Variation, Tag } = db;
-const createProduct = async (req, res) => {
-   try {
-       const seller_id = req.user.userID;
-       const { 
-           title, 
-           description, 
-           product_image, 
-           keyTags,    
-           categoryID, 
-           variations 
-       } = req.body;
-     
-       const requiredFields = {
-           title: !title?.trim() && 'Product title is required',
-           categoryID: !categoryID && 'Category is required',
-           variations: (!Array.isArray(variations) || variations.length === 0) && 
-               'At least one variation is required'
-       };
-        const missingField = Object.entries(requiredFields)
-           .find(([_, error]) => error);
-        if (missingField) {
-           return res.status(400).json({ 
-               success: false,
-               error: missingField[1]
-           });
-       }
+
+
+// Function to upload image to Cloudinary
+const uploadImageToCloudinary = (fileBuffer) => {
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream({
+            folder: 'productsImage',
+        }, (error, result) => {
+            if (error) {
+                console.error('Cloudinary upload error:', error);
+                return reject(error);
+            }
+            resolve(result);
+        });
+
        
-       const isValidVariations = variations.every(({ variation, price, quantity }) => 
-           typeof variation === 'string' && variation.trim() &&
-           typeof price === 'number' && price > 0 &&
-           typeof quantity === 'number' && quantity >= 0
-       );
-        if (!isValidVariations) {
-           return res.status(400).json({ 
-               success: false,
-               error: 'Each variation must have a name, positive price, and non-negative quantity'
-           });
-       }
-        
-       const result = await db.sequelize.transaction(async (transaction) => {
-          
-           const product = await Product.create({
-               title: title.trim(),
-               description: description?.trim() || null,
-               product_image: product_image?.trim() || null,
-               categoryID,
-               seller_id
-           }, { transaction });
-           
-           if (keyTags) {
-               const tagNames = keyTags
-                   .split(/\s+/)
-                   .map(tag => tag.trim().toLowerCase())
-                   .filter(Boolean);
-                const tags = await Promise.all(
-                   tagNames.map(name => 
-                       Tag.findOrCreate({
-                           where: { name },
-                           transaction
-                       }).then(([tag]) => tag)
-                   )
-               );
-                await product.setTags(tags, { transaction });
-           }
-         
-           const variationsData = variations.map(({ variation, price, quantity }) => ({
-               variation: variation.trim(),
-               price: Number(price),
-               quantity: Number(quantity),
-               productID: product.productID
-           }));
-            await Variation.bulkCreate(variationsData, { transaction });
-          
-           return await Product.findOne({
-               where: { productID: product.productID },
-               include: [
-                   {
-                       model: Variation,
-                       as: 'variations'
-                   },
-                   {
-                       model: Category,
-                       as: 'category',
-                       attributes: ['categoryID', 'categoryName']
-                   },
-                   {
-                       model: Tag,
-                       as: 'tags',
-                       through: { attributes: [] }
-                   }
-               ],
-               transaction
-           });
-       });
-        return res.status(201).json({
-           success: true,
-           message: 'Product created successfully',
-           data: result
-       });
-    } catch (error) {
-       console.error('Product creation error:', error);
-       return res.status(500).json({ 
-           success: false,
-           error: 'Failed to create product',
-           message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
-       });
-   }
+        stream.end(fileBuffer);
+    });
 };
 
+// Create Product
+const createProduct = async (req, res) => {
+    try {
+        const seller_id = req.user.userID;
+        const { 
+            title, 
+            description, 
+            keyTags,    
+            categoryID, 
+            variations 
+        } = req.body;
+
+        let parsedVariations;
+        if (typeof variations === 'string') {
+            try {
+                parsedVariations = JSON.parse(variations);
+            } catch (error) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Variations must be a valid JSON string'
+                });
+            }
+        } else {
+            parsedVariations = variations; 
+        }
+
+    
+        console.log('Parsed Variations:', parsedVariations);
+
+        
+        if (!req.file) {
+            return res.status(400).json({
+                success: false,
+                error: 'Product image is required'
+            });
+        }
+
+       
+        console.log('Type of req.file.buffer:', Buffer.isBuffer(req.file.buffer)); 
+
+      
+        const image = await uploadImageToCloudinary(req.file.buffer);
+
+       
+        const requiredFields = {
+            title: !title?.trim() && 'Product title is required',
+            categoryID: !categoryID && 'Category is required',
+            variations: (!Array.isArray(parsedVariations) || parsedVariations.length === 0) && 
+                'At least one variation is required'
+        };
+
+        const missingField = Object.entries(requiredFields)
+            .find(([_, error]) => error);
+        if (missingField) {
+            return res.status(400).json({ 
+                success: false,
+                error: missingField[1] 
+            });
+        }
+
+        const isValidVariations = parsedVariations.every(({ variation, price, quantity }) => 
+            typeof variation === 'string' && variation.trim() &&
+            typeof price === 'number' && price > 0 &&
+            typeof quantity === 'number' && quantity >= 0
+        );
+        if (!isValidVariations) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'Each variation must have a name, positive price, and non-negative quantity'
+            });
+        }
+         
+        const result = await db.sequelize.transaction(async (transaction) => {
+            const product = await Product.create({
+                title: title.trim(),
+                description: description?.trim() || null, 
+                product_image_public_id: image.public_id, 
+                product_image_url: image.secure_url, 
+                categoryID,
+                seller_id
+            }, { transaction });
+            
+            if (keyTags) {
+                const tagNames = keyTags
+                    .split(/\s+/)
+                    .map(tag => tag.trim().toLowerCase())
+                    .filter(Boolean);
+                const tags = await Promise.all(
+                    tagNames.map(name => 
+                        Tag.findOrCreate({
+                            where: { name },
+                            transaction
+                        }).then(([tag]) => tag)
+                    )
+                );
+                await product.setTags(tags, { transaction });
+            }
+          
+            const variationsData = parsedVariations.map(({ variation, price, quantity }) => ({
+                variation: variation.trim(),
+                price: Number(price),
+                quantity: Number(quantity),
+                productID: product.productID
+            }));
+            await Variation.bulkCreate(variationsData, { transaction });
+           
+            return await Product.findOne({
+                where: { productID: product.productID },
+                include: [
+                    {
+                        model: Variation,
+                        as: 'variations'
+                    },
+                    {
+                        model: Category,
+                        as: 'category',
+                        attributes: ['categoryID', 'categoryName']
+                    },
+                    {
+                        model: Tag,
+                        as: 'tags',
+                        through: { attributes: [] }
+                    }
+                ],
+                transaction
+            });
+        });
+
+        return res.status(201).json({
+            success: true,
+            message: 'Product created successfully',
+            data: result
+        });
+    } catch (error) {
+        console.error('Product creation error:', error);
+        return res.status(500).json({ 
+            success: false,
+            error: 'Failed to create product',
+            message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+            details: error
+        });
+    }
+};
+
+// Update Product
 const updateProduct = async (req, res) => {
     try {
         const { id } = req.params; 
-        const { title, description, product_image, categoryID, variations } = req.body;
+        const { title, description, categoryID, variations } = req.body;
 
-        
         const userId = req.user.userID; 
-
-       
         const product = await Product.findByPk(id);
         if (!product) {
             return res.status(404).json({
@@ -126,7 +180,6 @@ const updateProduct = async (req, res) => {
             });
         }
 
-        
         if (product.seller_id !== userId) {
             return res.status(403).json({
                 success: false,
@@ -135,21 +188,35 @@ const updateProduct = async (req, res) => {
         }
 
        
+        let parsedVariations;
+        if (typeof variations === 'string') {
+            try {
+                parsedVariations = JSON.parse(variations);
+            } catch (error) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Variations must be a valid JSON string'
+                });
+            }
+        } else {
+            parsedVariations = variations;
+        }
+
         const updatedProductData = {
             title: title !== undefined ? title : product.title,
             description: description !== undefined ? description : product.description,
-            product_image: product_image !== undefined ? product_image : product.product_image,
+            product_image_public_id: req.file ? (await uploadImageToCloudinary(req.file.buffer)).public_id : product.product_image_public_id,
+            product_image_url: req.file ? (await uploadImageToCloudinary(req.file.buffer)).secure_url : product.product_image_url,
             categoryID: categoryID !== undefined ? categoryID : product.categoryID
         };
 
-        
         await Product.update(updatedProductData, { where: { productID: id } });
 
-       
-        if (variations) {
-            await Variation.destroy({ where: { productID: id } }); // Remove existing variations
+        
+        if (parsedVariations) {
+            await Variation.destroy({ where: { productID: id } }); 
 
-            const variationsData = variations.map(({ variation, price, quantity }) => ({
+            const variationsData = parsedVariations.map(({ variation, price, quantity }) => ({
                 variation: variation.trim(),
                 price: Number(price),
                 quantity: Number(quantity),
@@ -159,7 +226,6 @@ const updateProduct = async (req, res) => {
             await Variation.bulkCreate(variationsData);
         }
 
-      
         const updatedProduct = await Product.findOne({
             where: { productID: id },
             include: [
@@ -195,17 +261,15 @@ const updateProduct = async (req, res) => {
     }
 };
 
-
+// Delete Product
 const deleteProduct = async (req, res) => {
     try {
         const { id } = req.params;
         const userId = req.user.userID; 
         console.log(`Attempting to delete product with ID: ${id}`); 
 
-        
         const product = await Product.findOne({ where: { productID: id } });
 
-        
         if (!product) {
             return res.status(404).json({
                 success: false,
@@ -213,7 +277,6 @@ const deleteProduct = async (req, res) => {
             });
         }
 
-       
         if (product.seller_id !== userId) {
             return res.status(403).json({
                 success: false,
@@ -221,9 +284,8 @@ const deleteProduct = async (req, res) => {
             });
         }
 
-       
         const deleted = await Product.destroy({ where: { productID: id } });
-        console.log(`Delete result: ${deleted}`); // Log the result of the delete operation
+        console.log(`Delete result: ${deleted}`);
 
         if (deleted) {
             return res.status(200).json({
@@ -245,7 +307,6 @@ const deleteProduct = async (req, res) => {
         });
     }
 };
-
 
 // Get products by tag
 const getProductsByTag = async (req, res) => {
@@ -278,10 +339,8 @@ const getProductsByTag = async (req, res) => {
             });
         }
 
-       
         console.log('Products found:', products);
 
-       
         const productsWithRelated = await Promise.all(products.map(async (product) => {
             try {
                 const relatedItems = await getRelatedItems(product.productID); 
@@ -311,12 +370,10 @@ const getAllProductsByCategory = async (req, res) => {
     try {
         const { catID } = req.params; 
 
-        
         const products = await Product.findAll({
             where: { categoryID: catID }
         });
 
-       
         if (products.length === 0) {
             return res.status(404).json({
                 success: false,
@@ -354,7 +411,6 @@ const getAllProductsByCategory = async (req, res) => {
 
 const getRelatedItems = async (productId) => {
     try {
-       
         const product = await Product.findByPk(productId, {
             include: [{ model: Tag, as: 'tags' }] 
         });
@@ -363,7 +419,6 @@ const getRelatedItems = async (productId) => {
             throw new Error('Product not found');
         }
 
-        
         const relatedItems = await Product.findAll({
             where: {
                 [db.Sequelize.Op.or]: [
@@ -425,12 +480,12 @@ const getAllProducts = async (req, res) => {
 };
 
 module.exports = {
-   createProduct,
-   updateProduct,
-   deleteProduct,
-   getProductsByTag,
-   getAllProductsByCategory,
-   getRelatedItems,
-   getAllProducts,
-   getLatestProducts
+    createProduct,
+    updateProduct,
+    deleteProduct,
+    getProductsByTag,
+    getAllProductsByCategory,
+    getRelatedItems,
+    getAllProducts,
+    getLatestProducts,
 };
