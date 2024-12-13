@@ -34,9 +34,13 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.TEXT, 
       allowNull: true,
     },
-    product_image: {
+    product_image_public_id: {
       type: DataTypes.STRING,
-      allowNull: true,
+      allowNull: false,
+    },
+    product_image_url: {
+      type: DataTypes.STRING,
+      allowNull: false,
     }
   }, {
     modelName: 'Product',
