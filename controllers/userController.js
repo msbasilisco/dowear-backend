@@ -21,11 +21,12 @@ const register = async (req, res) => {
             return res.status(400).json({ message: 'This email already exists!' });
         }
 
+        const hashedPassword = await bcrypt.hash(password, 10); // Hash password before storing
 
         const newUser = await User.create({
             email: email,
             username: username,
-            password: password,
+            password: hashedPassword,
             user_address: user_address,
             user_rating: user_rating || null,
         });
@@ -128,7 +129,7 @@ const getUserProfile = async (req, res) => {
             id: user.id,
             email: user.email,
             username: user.username,
-            user_address: user.city_address,
+            user_address: user.user_address,
             user_rating: user.user_rating,
         });
     } catch (error) {
