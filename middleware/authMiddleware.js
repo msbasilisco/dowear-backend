@@ -1,41 +1,38 @@
 const jwt = require('jsonwebtoken');
 const { User } = require('../models');
+const session = require('express-session');
+
+const ensureAuthenticated = (req, res, next) => {
+    if (req.session && req.session.user) {
+        return next();
+    }
+    return res.status(401).json({ message: "Unauthorized. Please log in." });
+};
 
 const protect = async (req, res, next) => {
-    try {
-        const authHeader = req.headers.authorization;
-        if (!authHeader || !authHeader.startsWith('Bearer ')) {
-            return res.status(401).json({
-                success: false,
-                message: 'No token provided'
-            });
+    let token;
+
+    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+        try {
+            token = req.headers.authorization.split(' ')[1];
+
+            const decoded = jwt.verify(token, process.env.JWT_SECRET);
+            req.user = await User.findOne({ where: { email: decoded.email } });
+
+            if (!req.user) {
+                return res.status(401).json({ message: 'User not found!' });
+            }
+
+            next();
+        } catch (error) {
+            console.error('Token verification failed:', error);
+            return res.status(401).json({ message: 'Not authorized, token failed!' });
         }
-        const token = authHeader.split(' ')[1];
+    }
 
-        // Verify the token
-        const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log('Decoded token:', decoded); // Log the decoded token for debugging
-
-        // Find the user by the userID stored in the token
-        const user = await User.findByPk(decoded.userID); // Ensure this matches the key used in the token
-
-        if (!user) {
-            return res.status(401).json({
-                success: false,
-                message: 'User not found'
-            });
-        }
-
-        req.user = user;  // Attach user to the request object
-        next();  // Proceed to the next middleware
-    } catch (error) {
-        console.error('Auth middleware error:', error);
-        res.status(401).json({
-            success: false,
-            message: 'Not authorized',
-            error: error.message
-        });
+    if (!token) {
+        return res.status(401).json({ message: 'Not authorized, no token!' });
     }
 };
 
-module.exports = { protect };
+module.exports = { protect, ensureAuthenticated };

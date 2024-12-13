@@ -1,6 +1,9 @@
-const express = require('express')
-const cors = require('cors')
-const db = require('./models')
+require('dotenv').config();
+const express = require('express');
+const cors = require('cors');
+const session = require('express-session');
+const SequelizeStore = require('connect-session-sequelize')(session.Store);
+const db = require('./models');
 
 const app = express()
 
@@ -21,6 +24,18 @@ db.sequelize.authenticate()
     .catch(err => {
         console.error('Unable to connect to the database:', err)
     })
+
+app.use(
+    session({
+        secret: process.env.SESSION_SECRET,
+        resave: false,
+        saveUninitialized: false,
+        store: new SequelizeStore({
+            db: db.sequelize,
+        }),
+        cookie: { secure: false, maxAge: 3600000 },
+    })
+);
 
 const userRoutes = require('./routes/userRoutes')
 const productRoutes = require('./routes/productRoutes')
