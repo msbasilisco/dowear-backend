@@ -12,11 +12,12 @@ const protect = async (req, res, next) => {
         }
         const token = authHeader.split(' ')[1];
 
+        // Verify the token
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
-        console.log(decoded);
+        console.log('Decoded token:', decoded); // Log the decoded token for debugging
 
         // Find the user by the userID stored in the token
-        const user = await User.findByPk(decoded.userID);
+        const user = await User.findByPk(decoded.userID); // Ensure this matches the key used in the token
 
         if (!user) {
             return res.status(401).json({
