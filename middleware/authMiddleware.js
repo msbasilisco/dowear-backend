@@ -10,6 +10,10 @@ const ensureAuthenticated = (req, res, next) => {
 };
 
 const protect = async (req, res, next) => {
+    console.log('Running Protect Middleware...');
+    console.log('Headers:', req.headers);
+    console.log('Token:', req.headers.authorization);
+
     let token;
 
     if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
@@ -17,6 +21,12 @@ const protect = async (req, res, next) => {
             token = req.headers.authorization.split(' ')[1];
 
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+            const isExpired = Date.now() >= decoded.exp * 1000;
+            if (isExpired) {
+                return res.status(401).json({ message: 'Token has expired.' });
+            }
+
             req.user = await User.findOne({ where: { email: decoded.email } });
 
             if (!req.user) {

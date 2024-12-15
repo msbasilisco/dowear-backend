@@ -10,7 +10,7 @@ const app = express()
 var corOptions = {
     origin: '*',
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization']
+    allowedHeaders: ['Content-Type', 'Authorization', 'api_key']
 }
 
 app.use(cors(corOptions))
@@ -49,7 +49,7 @@ app.use('/api/orders', orderRoutes)
 app.get('/', (req,res)=>{
     res.json({message: 'Connection has been established!'})
 })
-
+ 
 const PORT = process.env.PORT || 3000
 
 db.sequelize

@@ -2,8 +2,7 @@ const { cloudinary, storage } = require('../config/cloudinaryConfig');
 const db = require('../models');
 const { Product, Category, Variation, Tag } = db;
 
-
-// Function to upload image to Cloudinary
+// upload image to Cloudinary
 const uploadImageToCloudinary = (fileBuffer) => {
     return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream({
@@ -13,10 +12,11 @@ const uploadImageToCloudinary = (fileBuffer) => {
                 console.error('Cloudinary upload error:', error);
                 return reject(error);
             }
-            resolve(result);
+            resolve({
+                public_id: result.public_id,
+                secure_url: result.secure_url,
+            });
         });
-
-       
         stream.end(fileBuffer);
     });
 };
@@ -24,144 +24,45 @@ const uploadImageToCloudinary = (fileBuffer) => {
 // Create Product
 const createProduct = async (req, res) => {
     try {
-        const seller_id = req.user.userID;
-        const { 
-            title, 
-            description, 
-            keyTags,    
-            categoryID, 
-            variations 
-        } = req.body;
+        console.log('Inside createProduct Controller...');
+        console.log('Request Body:', req.body);
+        console.log('Uploaded File:', req.file);
 
-        let parsedVariations;
-        if (typeof variations === 'string') {
-            try {
-                parsedVariations = JSON.parse(variations);
-            } catch (error) {
-                return res.status(400).json({
-                    success: false,
-                    error: 'Variations must be a valid JSON string'
-                });
-            }
-        } else {
-            parsedVariations = variations; 
+        const seller_id = req.user?.userID;
+
+        if (!seller_id) {
+            return res.status(401).json({ success: false, message: 'Unauthorized: seller_id missing.' });
         }
 
-    
-        console.log('Parsed Variations:', parsedVariations);
-
-        
         if (!req.file) {
-            return res.status(400).json({
-                success: false,
-                error: 'Product image is required'
-            });
+            return res.status(400).json({ success: false, message: 'Image file is required.' });
         }
 
-       
-        console.log('Type of req.file.buffer:', Buffer.isBuffer(req.file.buffer)); 
-
-      
-        const image = await uploadImageToCloudinary(req.file.buffer);
-
-       
-        const requiredFields = {
-            title: !title?.trim() && 'Product title is required',
-            categoryID: !categoryID && 'Category is required',
-            variations: (!Array.isArray(parsedVariations) || parsedVariations.length === 0) && 
-                'At least one variation is required'
+        const cloudinaryResult = await uploadImageToCloudinary(req.file.buffer);
+        
+        const productData = JSON.parse(req.body.productData);
+        const { categoryID, title, description, tags, variations } = productData;
+        
+        const newProduct = {
+            seller_id,
+            categoryID,
+            title,
+            description,
+            tags,
+            variations,
+            product_image_public_id: cloudinaryResult.public_id,
+            product_image_url: cloudinaryResult.secure_url
         };
 
-        const missingField = Object.entries(requiredFields)
-            .find(([_, error]) => error);
-        if (missingField) {
-            return res.status(400).json({ 
-                success: false,
-                error: missingField[1] 
-            });
+        if (!categoryID || !title || !description || !tags || !variations) {
+            return res.status(400).json({ success: false, message: 'All product fields are required.' });
         }
-
-        const isValidVariations = parsedVariations.every(({ variation, price, quantity }) => 
-            typeof variation === 'string' && variation.trim() &&
-            typeof price === 'number' && price > 0 &&
-            typeof quantity === 'number' && quantity >= 0
-        );
-        if (!isValidVariations) {
-            return res.status(400).json({ 
-                success: false,
-                error: 'Each variation must have a name, positive price, and non-negative quantity'
-            });
-        }
-         
-        const result = await db.sequelize.transaction(async (transaction) => {
-            const product = await Product.create({
-                title: title.trim(),
-                description: description?.trim() || null, 
-                product_image_public_id: image.public_id, 
-                product_image_url: image.secure_url, 
-                categoryID,
-                seller_id
-            }, { transaction });
-            
-            if (keyTags) {
-                const tagNames = keyTags
-                    .split(/\s+/)
-                    .map(tag => tag.trim().toLowerCase())
-                    .filter(Boolean);
-                const tags = await Promise.all(
-                    tagNames.map(name => 
-                        Tag.findOrCreate({
-                            where: { name },
-                            transaction
-                        }).then(([tag]) => tag)
-                    )
-                );
-                await product.setTags(tags, { transaction });
-            }
-          
-            const variationsData = parsedVariations.map(({ variation, price, quantity }) => ({
-                variation: variation.trim(),
-                price: Number(price),
-                quantity: Number(quantity),
-                productID: product.productID
-            }));
-            await Variation.bulkCreate(variationsData, { transaction });
-           
-            return await Product.findOne({
-                where: { productID: product.productID },
-                include: [
-                    {
-                        model: Variation,
-                        as: 'variations'
-                    },
-                    {
-                        model: Category,
-                        as: 'category',
-                        attributes: ['categoryID', 'categoryName']
-                    },
-                    {
-                        model: Tag,
-                        as: 'tags',
-                        through: { attributes: [] }
-                    }
-                ],
-                transaction
-            });
-        });
-
-        return res.status(201).json({
-            success: true,
-            message: 'Product created successfully',
-            data: result
-        });
+        
+        const savedProduct = await Product.create(newProduct);
+        return res.status(201).json({ success: true, product: savedProduct });
     } catch (error) {
         console.error('Product creation error:', error);
-        return res.status(500).json({ 
-            success: false,
-            error: 'Failed to create product',
-            message: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
-            details: error
-        });
+        return res.status(500).json({ success: false, message: 'Internal server error', error });
     }
 };
 
