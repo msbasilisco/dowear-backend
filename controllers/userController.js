@@ -70,18 +70,18 @@ const login = async (req, res) => {
 
         const JWT_SECRET = process.env.JWT_SECRET;
         const token = jwt.sign(
-            { userID: user.id, email: user.email },
+            { userID: user.userID, email: user.email },
             JWT_SECRET,
             { expiresIn: '1h' }
         );
 
         // create session
-        req.session.user = { id: user.id, username: user.username, email: user.email };
+        req.session.user = { userID: user.userID, username: user.username, email: user.email };
         
         return res.status(200).json({
             message: 'Login successful!',
             token,
-            user: { id: user.id, email: user.email, username: user.username },
+            user: { userID: user.userID, email: user.email, username: user.username },
         });
 
     } catch (error) {
@@ -133,7 +133,7 @@ const getUserProfile = async (req, res) => {
 
         // Return user profile details
         return res.status(200).json({
-            id: user.id,
+            userID: user.userID,
             email: user.email,
             username: user.username,
             user_address: user.user_address,
