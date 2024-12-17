@@ -14,35 +14,25 @@ const protect = async (req, res, next) => {
     console.log('Headers:', req.headers);
     console.log('Token:', req.headers.authorization);
 
-    let token;
+    const token = req.headers.authorization?.split(' ')[1];
 
-    if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
+    if (token) {
         try {
-            token = req.headers.authorization.split(' ')[1];
-
             const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-            const isExpired = Date.now() >= decoded.exp * 1000;
-            if (isExpired) {
-                return res.status(401).json({ message: 'Token has expired.' });
-            }
-
             req.user = await User.findOne({ where: { email: decoded.email } });
-
             if (!req.user) {
                 return res.status(401).json({ message: 'User not found!' });
             }
-
-            next();
+            return next();
         } catch (error) {
-            console.error('Token verification failed:', error);
-            return res.status(401).json({ message: 'Not authorized, token failed!' });
+            return res.status(401).json({ message: 'Token invalid or expired!' });
         }
+    } else if (req.session?.user) {
+        req.user = req.session.user;
+        return next();
     }
 
-    if (!token) {
-        return res.status(401).json({ message: 'Not authorized, no token!' });
-    }
+    return res.status(401).json({ message: 'Not authenticated!' });
 };
 
 module.exports = { protect, ensureAuthenticated };
