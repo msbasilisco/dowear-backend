@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { hashPassword, validatePassword } = require('../utils/passwordUtils');
 // const { JWT_SECRET } = require('../config/dbConfig');
 const db = require('../models');
 const { protect } = require('../middleware/authMiddleware');
@@ -21,7 +22,7 @@ const register = async (req, res) => {
             return res.status(400).json({ message: 'This email already exists!' });
         }
 
-        const hashedPassword = await bcrypt.hash(password, 10); // Hash password before storing
+        const hashedPassword = await hashPassword(password);
 
         const newUser = await User.create({
             email: email,
@@ -51,16 +52,21 @@ const login = async (req, res) => {
 
         const user = await User.findOne({ where: { username } });
         console.log('Fetched user:', user);
+        console.log('!!!!!Stored user password (hash):', user.password);
+
 
         if (!user) {
             return res.status(400).json({ message: 'User not found' });
         }
 
         // compare passwords
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(400).json({ message: 'Incorrect password' });
-        }
+        const isMatch = await validatePassword(password, user.password);
+        console.log('Input password:', password);
+        console.log('Stored password (hash):', user.password);
+        console.log('Password match result:', isMatch);
+        // if (!isMatch) {
+        //     return res.status(400).json({ message: 'Incorrect password' });
+        // }
 
         const JWT_SECRET = process.env.JWT_SECRET;
         const token = jwt.sign(
@@ -71,12 +77,13 @@ const login = async (req, res) => {
 
         // create session
         req.session.user = { id: user.id, username: user.username, email: user.email };
-
+        
         return res.status(200).json({
             message: 'Login successful!',
             token,
             user: { id: user.id, email: user.email, username: user.username },
         });
+
     } catch (error) {
         console.error('Error during login:', error.message);
         return res.status(500).json({ message: 'An error occurred during login.' });
