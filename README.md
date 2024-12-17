@@ -1,7 +1,7 @@
-# Dowear - Backend
+# dowear: a buy and sell app
 
 ## Overview
-This repository contains the backend implementation of Dowear. The backend is built using Node.js, Express.js, Sequelize, and MySQL. It provides APIs to support user authentication, product listings, shopping cart functionality, and checkout processes.
+This repository contains the backend implementation of dowear. The backend is built using Node.js, Express.js, Sequelize, and MySQL. It provides APIs to support user authentication, product listings, shopping cart functionality, and checkout processes.
 
 ## Features
 - User authentication and authorization.
@@ -16,6 +16,7 @@ This repository contains the backend implementation of Dowear. The backend is bu
 - **Node.js**
 - **Express.js**
 - **Sequelize**
+-  **Cloudinary**
 - **MySQL**
 - **JWT Authentication**
 
@@ -59,7 +60,12 @@ Make sure you have the following installed:
    The server will run at `http://localhost:3000`.
 
 ## Related Repository
-This project is paired with the frontend implementation built with React. Find the frontend repository here: [Dowear Frontend](https://github.com/psalmantha/dowear-frontend.git)
+This project is paired with the frontend implementation built with React. Find the frontend repository here: [dowear frontend](https://github.com/psalmantha/dowear-frontend.git)
 
 ## Contributing
 Contributions are welcome! Please fork the repository and create a pull request for any features, fixes, or enhancements.
+
+## This is project is created by
+- Basilisco, Farah Jane  
+- Bonachita, Clybel Djen  
+- Ipong, Psalmantha Allain
