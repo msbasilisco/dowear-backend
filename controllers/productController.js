@@ -437,6 +437,67 @@ const getAllProducts = async (req, res) => {
     }
 };
 
+const getProductDetails = async (req, res) => {
+    const { productID } = req.params;
+
+    try {
+        const product = await Product.findOne({
+            where: { productID },
+            include: [
+                {
+                    model: User,
+                    as: 'seller',
+                    attributes: ['username', 'user_address'],
+                },
+                {
+                    model: Category,
+                    as: 'category',
+                    attributes: ['categoryName'],
+                },
+                {
+                    model: Variation,
+                    as: 'variations',
+                    attributes: ['variationID', 'variation', 'price', 'quantity'],
+                },
+            ],
+        });
+
+        if (!product) {
+            return res.status(404).json({
+                success: false,
+                message: 'Product not found.',
+            });
+        }
+
+        return res.status(200).json({
+            success: true,
+            product: {
+                productID: product.productID,
+                title: product.title,
+                description: product.description,
+                imageUrl: product.product_image_url,
+                seller: {
+                    username: product.seller?.username || 'Unknown',
+                    user_address: product.seller?.user_address || 'Unknown',
+                },
+                category: product.category?.categoryName || 'No Category',
+                variations: product.variations.map(variation => ({
+                    variationID: variation.variationID,
+                    name: variation.variation,
+                    price: variation.price,
+                    quantity: variation.quantity,
+                })),
+            },
+        });
+    } catch (error) {
+        console.error('Error fetching product details:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Failed to fetch product details.',
+        });
+    }
+};
+
 const getAllProductsByUser = async (req, res) => {
     try {
         const seller_id = req.user?.userID;
@@ -454,11 +515,21 @@ const getAllProductsByUser = async (req, res) => {
                     as: 'seller',
                     attributes: ['username', 'user_address'],
                 },
+                {
+                    model: Category,
+                    as: 'category',
+                    attributes: ['categoryName'],
+                },
+                {
+                    model: Variation,
+                    as: 'variations',
+                    attributes: ['variationID', 'variation', 'price', 'quantity']
+                }
             ],
             order: [['createdAt', 'DESC']]
         });
 
-        console.log('Fetched Products:', userProducts);
+        // console.log('Fetched Products:', userProducts);
 
         if (!userProducts.length) {
             return res.status(404).json({ success: false, message: 'No products found for this user.' });
@@ -470,10 +541,20 @@ const getAllProductsByUser = async (req, res) => {
                 productID: product.productID,
                 title: product.title,
                 imageUrl: product.product_image_url,
+                description: product.description,
                 seller: {
                     username: product.seller?.username || 'Unknown',
                     user_address: product.seller?.user_address || 'Unknown',
-                }
+                },
+                category: {
+                    category: product.category?.categoryName || 'No Category'
+                },
+                variations: product.variations.map(variation => ({
+                    variationID: variation.variationID,
+                    name: variation.variation,
+                    price: variation.price,
+                    quantity: variation.quantity,
+                }))
             })),
         });
     } catch (error) {
@@ -481,7 +562,6 @@ const getAllProductsByUser = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Failed to fetch user products', error });
     }
 };
-
 
 module.exports = {
     createProduct,
@@ -492,5 +572,6 @@ module.exports = {
     getRelatedItems,
     getAllProducts,
     getLatestProducts,
-    getAllProductsByUser
+    getAllProductsByUser,
+    getProductDetails
 };
