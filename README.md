@@ -8,6 +8,8 @@ This repository contains the backend implementation of Dowear. The backend is bu
 - CRUD operations for managing products.
 - Shopping cart management.
 - Checkout and order processing.
+- Recently viewed items.
+- Related product recommendations.
 - MySQL database integration via Sequelize ORM.
 
 ## Technologies Used
