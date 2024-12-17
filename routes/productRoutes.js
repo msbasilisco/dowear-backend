@@ -7,7 +7,8 @@ const { createProduct,
     getAllProductsByCategory,
     getRelatedItems,
     getAllProducts,
-    getLatestProducts
+    getLatestProducts,
+    getAllProductsByUser
     } = require('../controllers/productController');
 const { protect } = require('../middleware/authMiddleware');
 const multer = require('multer');
@@ -15,6 +16,7 @@ const storage = multer.memoryStorage();
 const upload = multer({ storage });
 
 router.post('/products/addProduct', protect, upload.single('image'), createProduct);
+router.get('/products/userProducts', protect, getAllProductsByUser);
 router.get('/products/tags/:tagName', getProductsByTag);
 router.get('/products/category/:catID', getAllProductsByCategory);
 router.get('/products/allProducts', getAllProducts);
