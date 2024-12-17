@@ -1,6 +1,6 @@
 const { cloudinary, storage } = require('../config/cloudinaryConfig'); 
 const db = require('../models');
-const { Product, Category, Variation, Tag } = db;
+const { Product, Category, Variation, Tag, User, ProductTag } = db;
 
 // upload image to Cloudinary
 const uploadImageToCloudinary = (fileBuffer) => {
@@ -17,6 +17,7 @@ const uploadImageToCloudinary = (fileBuffer) => {
                 secure_url: result.secure_url,
             });
         });
+        // console.log('File buffer size:', fileBuffer.length);
         stream.end(fileBuffer);
     });
 };
@@ -41,24 +42,80 @@ const createProduct = async (req, res) => {
         const cloudinaryResult = await uploadImageToCloudinary(req.file.buffer);
         
         const productData = JSON.parse(req.body.productData);
+        // console.log('Req body body u:', req.body.productData);
         const { categoryID, title, description, tags, variations } = productData;
         
+        const tagArray = typeof tags === 'string' ? tags.split(/\s+/).filter(Boolean) : [];
+
+        if (!variations || variations.length === 0 || variations.some(v => !v.variation || !v.quantity || !v.price)) {
+            return res.status(400).json({ success: false, message: 'Variations must be properly defined.' });
+        }
+
         const newProduct = {
             seller_id,
             categoryID,
             title,
             description,
-            tags,
-            variations,
+            // tags: tagArray,
+            // variations,
             product_image_public_id: cloudinaryResult.public_id,
-            product_image_url: cloudinaryResult.secure_url
+            product_image_url: cloudinaryResult.secure_url,
         };
 
+        const savedProduct = await Product.create(newProduct);
+
+        for (const variation of variations) {
+            await Variation.create({
+                productID: savedProduct.productID,
+                variation: variation.variation,
+                price: variation.price,
+                quantity: variation.quantity,
+            });
+        }
+
+        console.log('Saved Product:', savedProduct);
+
+        const tagInstances = [];
+        for (const tag of tagArray) {
+            let existingTag = await Tag.findOne({ where: { tagName: tag } });
+            console.log('Existing Tag:', existingTag);
+            if (!existingTag) {
+                existingTag = await Tag.create({ tagName: tag });
+            }
+            tagInstances.push(existingTag);
+        }
+
+        if (tagArray.length > 0) {
+            const tagInstances = [];
+            for (const tag of tagArray) {
+                let existingTag = await Tag.findOne({ where: { tagName: tag } });
+                if (!existingTag) {
+                    existingTag = await Tag.create({ tagName: tag });
+                }
+                tagInstances.push(existingTag);
+            }
+
+            for (const tagInstance of tagInstances) {
+                await ProductTag.create({
+                    productID: savedProduct.productID,
+                    tagID: tagInstance.tagID,
+                });
+            
+                console.log('ProductTag Entry Created:', {
+                    productID: savedProduct.productID,
+                    tagID: tagInstance.tagID,
+                });
+            }
+        }
+        
         if (!categoryID || !title || !description || !tags || !variations) {
             return res.status(400).json({ success: false, message: 'All product fields are required.' });
         }
-        
-        const savedProduct = await Product.create(newProduct);
+        console.log('Received Product Data:', productData);
+        console.log('Variations:', variations);
+
+        // const savedProduct = await Product.create(newProduct);
+
         return res.status(201).json({ success: true, product: savedProduct });
     } catch (error) {
         console.error('Product creation error:', error);
@@ -357,7 +414,7 @@ const getLatestProducts = async( req, res)=>{
         });
     }
 
-}
+};
 
 const getAllProducts = async (req, res) => {
     try {
@@ -380,6 +437,52 @@ const getAllProducts = async (req, res) => {
     }
 };
 
+const getAllProductsByUser = async (req, res) => {
+    try {
+        const seller_id = req.user?.userID;
+
+        if (!seller_id) {
+            return res.status(401).json({ success: false, message: 'Unauthorized: seller_id missing.' });
+        }
+
+        const userProducts = await Product.findAll({
+            where: { seller_id },
+            attributes: ['productID', 'title', 'product_image_url', 'description'],
+            include: [
+                {
+                    model: User,
+                    as: 'seller',
+                    attributes: ['username', 'user_address'],
+                },
+            ],
+            order: [['createdAt', 'DESC']]
+        });
+
+        console.log('Fetched Products:', userProducts);
+
+        if (!userProducts.length) {
+            return res.status(404).json({ success: false, message: 'No products found for this user.' });
+        }
+
+        return res.status(200).json({ 
+            success: true, 
+            products: userProducts.map(product => ({
+                productID: product.productID,
+                title: product.title,
+                imageUrl: product.product_image_url,
+                seller: {
+                    username: product.seller?.username || 'Unknown',
+                    user_address: product.seller?.user_address || 'Unknown',
+                }
+            })),
+        });
+    } catch (error) {
+        console.error('Error fetching user products:', error);
+        return res.status(500).json({ success: false, message: 'Failed to fetch user products', error });
+    }
+};
+
+
 module.exports = {
     createProduct,
     updateProduct,
@@ -389,4 +492,5 @@ module.exports = {
     getRelatedItems,
     getAllProducts,
     getLatestProducts,
+    getAllProductsByUser
 };
