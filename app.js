@@ -28,12 +28,12 @@ db.sequelize.authenticate()
 app.use(
     session({
         secret: process.env.SESSION_SECRET,
-        resave: false,
-        saveUninitialized: false,
+        resave: false, 
+        saveUninitialized: true, // from false
         store: new SequelizeStore({
             db: db.sequelize,
         }),
-        cookie: { secure: false, maxAge: 3600000 },
+        cookie: { secure: false }, // maxAge: 3600000 
     })
 );
 
