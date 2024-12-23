@@ -59,10 +59,6 @@ Make sure you have the following installed:
    DB_POOL_MIN = 0
    DB_POOL_ACQUIRE = 30000
    DB_POOL_IDLE = 10000
-   
-   CLOUDINARY_CLOUD_NAME= duhd59w65
-   CLOUDINARY_API_KEY= 214348456511783
-   CLOUDINARY_API_SECRET= p6ZWkM2G74XQMdjbeOaaamqSBxM
    ```
 5. Run database migrations:
    ```bash
